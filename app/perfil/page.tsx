@@ -113,8 +113,6 @@ function UserMenu({ user }: { user: any }) {
         <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fade-in">
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="font-semibold text-gray-800 text-sm">{user?.firstName || 'Yahir Venegas'}</div>
-            <div className="font-semibold text-gray-800 text-sm">{user?.firstName || 'Yahir Venegas'}</div>
-            <div className="font-semibold text-gray-800 text-sm">{user?.name || 'Yahir Venegas'}</div>
             <div className="text-xs text-gray-500">{user?.email || 'novayahiro50@gmail.com'}</div>
           </div>
           <Link href="/perfil" className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"><User className="h-4 w-4 text-gray-500" />Perfil</Link>
@@ -333,7 +331,7 @@ export default function PerfilVoluntario() {
                   <span className="text-sm text-gray-500"> {voluntario?.city && voluntario?.state ? `${voluntario.city}, ${voluntario.state}` : 'Guadalajara, Jalisco'} </span>
                 </div>
                 {/* Tagline */}
-                <div className="text-sm text-gray-600 italic mb-1">Voluntario apasionado por la tecnología y la comunidad</div>
+                <div className="text-sm text-gray-600 italic">{voluntario?.tagline || ''}</div>
                 {/* Rating */}
                 <div className="flex gap-1 mb-2 mt-1">
                   {[...Array(5)].map((_, i) => {
@@ -408,7 +406,6 @@ export default function PerfilVoluntario() {
                 <h2 className="text-lg font-semibold text-gray-800 border-b-2 border-blue-200 pb-1">Sobre mí</h2>
               </div>
               <p className="text-gray-600 text-sm mb-2">{voluntario?.bio || ''}</p>
-              <div className="text-sm text-gray-600 italic">{voluntario?.tagline || ''}</div>
             </div>
             {/* Card Logros debajo de Sobre mí */}
             <div className="relative bg-gradient-to-br from-white via-blue-50 to-purple-50 border border-blue-100 shadow-xl rounded-2xl p-6 w-full mt-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">

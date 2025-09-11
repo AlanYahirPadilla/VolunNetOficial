@@ -12,16 +12,33 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  Heart, Home, Bell, User, Settings, LogOut, 
-  User as UserIcon, Shield, Bell as BellIcon, 
+import {
+  Heart, Home, Bell, User, Settings, LogOut,
+  User as UserIcon, Shield, Bell as BellIcon,
   Palette, Globe, Smartphone, Mail, MapPin,
-  Save, Eye, EyeOff, Lock, Unlock, Trash2, CheckCircle
+  Save, Eye, EyeOff, Lock, Unlock, Trash2, CheckCircle,
+  Link as LinkIcon, Briefcase, Award
 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { getCurrentUser } from "@/app/auth/actions"
 import { VerificationModal } from "@/components/ui/verification-modal"
+
+// --- Datos del Modal de Edición Integrados ---
+const GENDERS = ["Masculino", "Femenino", "Otro", "Prefiero no decirlo"];
+const SKILLS = [
+  "Programación", "Diseño gráfico", "Comunicación", "Liderazgo", "Enseñanza",
+  "Logística", "Fotografía", "Marketing", "Atención al cliente", "Redacción"
+];
+const LANGUAGES = [
+  "Español", "Inglés", "Francés", "Alemán", "Italiano", "Portugués", "Chino", "Japonés"
+];
+const COUNTRIES = ["México", "España", "Argentina", "Colombia", "Estados Unidos", "Chile", "Perú", "Otro"];
+const SOCIALS = [
+  { label: "Facebook", icon: <LinkIcon className="h-4 w-4 text-blue-600" />, key: "facebook" },
+  { label: "Instagram", icon: <LinkIcon className="h-4 w-4 text-pink-500" />, key: "instagram" },
+  { label: "Twitter", icon: <LinkIcon className="h-4 w-4 text-blue-400" />, key: "twitter" },
+];
 
 interface UserData {
   id: string
@@ -37,6 +54,18 @@ interface UserData {
   avatar?: string
   emailVerified?: boolean
   phoneVerified?: boolean
+  // Campos adicionales del perfil
+  birthDate?: string
+  gender?: string
+  address?: string
+  latitude?: number
+  longitude?: number
+  tagline?: string
+  skills?: string[]
+  languages?: string[]
+  references?: string[]
+  cvUrl?: string
+  socialLinks?: string[]
 }
 
 interface NotificationSettings {
@@ -73,17 +102,28 @@ export default function ConfiguracionPage() {
   const [phoneVerificationSent, setPhoneVerificationSent] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [showPhoneModal, setShowPhoneModal] = useState(false)
+  const [locating, setLocating] = useState(false)
 
-  // Estados para las configuraciones
   const [profileData, setProfileData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    city: '',
-    state: '',
+    birthDate: '',
+    gender: '',
     country: '',
-    bio: ''
+    state: '',
+    city: '',
+    address: '',
+    latitude: 0,
+    longitude: 0,
+    tagline: '',
+    bio: '',
+    skills: [] as string[],
+    languages: [] as string[],
+    references: [] as string[],
+    cvUrl: '',
+    socialLinks: [] as { label: string, url: string }[]
   })
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
@@ -124,17 +164,31 @@ export default function ConfiguracionPage() {
       setLoading(true)
       const currentUser = await getCurrentUser()
       setUser(currentUser)
-      
+
       if (currentUser) {
         setProfileData({
           firstName: currentUser.firstName || '',
           lastName: currentUser.lastName || '',
           email: currentUser.email || '',
           phone: currentUser.phone || '',
-          city: currentUser.city || '',
-          state: currentUser.state || '',
+          birthDate: currentUser.birthDate?.split("T")[0] || "",
+          gender: currentUser.gender || '',
           country: currentUser.country || '',
-          bio: currentUser.bio || ''
+          state: currentUser.state || '',
+          city: currentUser.city || '',
+          address: currentUser.address || '',
+          latitude: currentUser.latitude || 0,
+          longitude: currentUser.longitude || 0,
+          tagline: currentUser.tagline || '',
+          bio: currentUser.bio || '',
+          skills: currentUser.skills || [],
+          languages: currentUser.languages || [],
+          references: currentUser.references || [],
+          cvUrl: currentUser.cvUrl || '',
+          socialLinks: SOCIALS.map(social => ({
+            label: social.label,
+            url: (currentUser.socialLinks || []).find(link => link.includes(social.key)) || ''
+          }))
         })
       }
     } catch (error) {
@@ -145,19 +199,108 @@ export default function ConfiguracionPage() {
     }
   }
 
+  const handleProfileChange = (field: string, value: any) => {
+    setProfileData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleMultiSelect = (field: 'skills' | 'languages', value: string) => {
+    setProfileData(prev => {
+      const currentValues = prev[field] as string[];
+      const newValues = currentValues.includes(value)
+        ? currentValues.filter(v => v !== value)
+        : [...currentValues, value];
+      return { ...prev, [field]: newValues };
+    });
+  };
+
+  const handleAddReference = () => {
+    setProfileData(prev => ({ ...prev, references: [...prev.references, ""] }))
+  }
+
+  const handleReferenceChange = (idx: number, value: string) => {
+    setProfileData(prev => {
+      const newReferences = [...prev.references];
+      newReferences[idx] = value;
+      return { ...prev, references: newReferences };
+    });
+  }
+
+  const handleRemoveReference = (idx: number) => {
+    setProfileData(prev => {
+      const newReferences = [...prev.references];
+      newReferences.splice(idx, 1);
+      return { ...prev, references: newReferences };
+    });
+  }
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setError("La geolocalización no es soportada por tu navegador.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setProfileData(prev => ({
+          ...prev,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude
+        }));
+        setLocating(false);
+      },
+      () => {
+        setError("No se pudo obtener la ubicación.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  const handleSocialLinkChange = (label: string, url: string) => {
+    setProfileData(prev => {
+      const existingLinkIndex = prev.socialLinks.findIndex(link => link.label === label);
+      const newSocialLinks = [...prev.socialLinks];
+      if (existingLinkIndex > -1) {
+        newSocialLinks[existingLinkIndex] = { label, url };
+      } else {
+        newSocialLinks.push({ label, url });
+      }
+      return { ...prev, socialLinks: newSocialLinks };
+    });
+  };
+
   const handleSaveProfile = async () => {
     setSaving(true)
     setError(null)
     setSuccess(null)
 
     try {
-      // Aquí iría la lógica para guardar los datos del perfil
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulación
-      setSuccess("Perfil actualizado correctamente")
-    } catch (error) {
-      setError("Error al actualizar el perfil")
+      const dataToSend = {
+        ...profileData,
+        socialLinks: (profileData.socialLinks || [])
+          .map(link => link.url)
+          .filter(Boolean),
+      };
+
+      const response = await fetch('/api/perfil/voluntario', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'No se pudo actualizar el perfil');
+      }
+
+      setSuccess("Perfil actualizado correctamente");
+
+    } catch (error: any) {
+      setError(error.message || "Error al actualizar el perfil");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
@@ -167,8 +310,7 @@ export default function ConfiguracionPage() {
     setSuccess(null)
 
     try {
-      // Aquí iría la lógica para guardar las configuraciones de notificaciones
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulación
+      await new Promise(resolve => setTimeout(resolve, 1000))
       setSuccess("Configuración de notificaciones actualizada")
     } catch (error) {
       setError("Error al actualizar las notificaciones")
@@ -183,8 +325,7 @@ export default function ConfiguracionPage() {
     setSuccess(null)
 
     try {
-      // Aquí iría la lógica para guardar las configuraciones de privacidad
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulación
+      await new Promise(resolve => setTimeout(resolve, 1000))
       setSuccess("Configuración de privacidad actualizada")
     } catch (error) {
       setError("Error al actualizar la privacidad")
@@ -209,8 +350,7 @@ export default function ConfiguracionPage() {
     setSuccess(null)
 
     try {
-      // Aquí iría la lógica para cambiar la contraseña
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulación
+      await new Promise(resolve => setTimeout(resolve, 1000))
       setSuccess("Contraseña cambiada correctamente")
       setPasswordData({
         currentPassword: '',
@@ -233,8 +373,7 @@ export default function ConfiguracionPage() {
     setError(null)
 
     try {
-      // Aquí iría la lógica para eliminar la cuenta
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulación
+      await new Promise(resolve => setTimeout(resolve, 1000))
       router.push('/')
     } catch (error) {
       setError("Error al eliminar la cuenta")
@@ -251,17 +390,10 @@ export default function ConfiguracionPage() {
     try {
       const response = await fetch("/api/auth/verify-email", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "send",
-          email: profileData.email,
-        }),
+        headers: { "Content-Type": "application/json", },
+        body: JSON.stringify({ action: "send", email: profileData.email, }),
       })
-
       const data = await response.json()
-
       if (response.ok) {
         setEmailVerificationSent(true)
         setSuccess("Código de verificación enviado a tu correo electrónico")
@@ -288,17 +420,10 @@ export default function ConfiguracionPage() {
     try {
       const response = await fetch("/api/auth/verify-phone", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "send",
-          phone: profileData.phone,
-        }),
+        headers: { "Content-Type": "application/json", },
+        body: JSON.stringify({ action: "send", phone: profileData.phone, }),
       })
-
       const data = await response.json()
-
       if (response.ok) {
         setPhoneVerificationSent(true)
         setSuccess("Código de verificación enviado a tu teléfono")
@@ -320,22 +445,14 @@ export default function ConfiguracionPage() {
     try {
       const response = await fetch("/api/auth/verify-email", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "verify",
-          code: code,
-        }),
+        headers: { "Content-Type": "application/json", },
+        body: JSON.stringify({ action: "verify", code: code, }),
       })
-
       const data = await response.json()
-
       if (response.ok) {
         setSuccess("Correo electrónico verificado correctamente")
         setEmailVerificationSent(false)
         setShowEmailModal(false)
-        // Recargar datos del usuario para actualizar el estado
         await loadUserData()
       } else {
         setError(data.error || "Error al verificar el código")
@@ -355,22 +472,14 @@ export default function ConfiguracionPage() {
     try {
       const response = await fetch("/api/auth/verify-phone", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "verify",
-          code: code,
-        }),
+        headers: { "Content-Type": "application/json", },
+        body: JSON.stringify({ action: "verify", code: code, }),
       })
-
       const data = await response.json()
-
       if (response.ok) {
         setSuccess("Teléfono verificado correctamente")
         setPhoneVerificationSent(false)
         setShowPhoneModal(false)
-        // Recargar datos del usuario para actualizar el estado
         await loadUserData()
       } else {
         setError(data.error || "Error al verificar el código")
@@ -398,15 +507,12 @@ export default function ConfiguracionPage() {
       {/* Header superior */}
       <div className="sticky top-0 z-30 bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
-          {/* Logo */}
           <div className="flex items-center gap-2">
             <Link href="/dashboard" className="flex items-center gap-2 focus:outline-none">
               <Heart className="h-8 w-8 text-blue-600 fill-blue-200" />
               <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">VolunNet</span>
             </Link>
           </div>
-          
-          {/* Navegación */}
           <div className="flex items-center gap-6">
             <nav className="flex gap-2 text-gray-600 text-sm font-medium">
               <Link href="/dashboard" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative">
@@ -425,11 +531,7 @@ export default function ConfiguracionPage() {
                 <span className="absolute left-0 -bottom-0.5 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
               </Link>
             </nav>
-            
-            {/* Separador visual */}
             <div className="w-px h-8 bg-gray-200 mx-2" />
-            
-            {/* Avatar usuario */}
             <div className="relative">
               <button
                 className="h-9 w-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold focus:outline-none focus:ring-2 focus:ring-blue-300"
@@ -540,7 +642,7 @@ export default function ConfiguracionPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Contenido de Perfil */}
+          {/* --- Contenido de Perfil Actualizado --- */}
           <TabsContent value="perfil" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -555,27 +657,32 @@ export default function ConfiguracionPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
+                  {/* --- Información Básica --- */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">Nombre *</Label>
-                      <Input
-                        id="firstName"
-                        value={profileData.firstName}
-                        onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
-                        className="mt-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      />
+                      <Input id="firstName" value={profileData.firstName} onChange={e => handleProfileChange('firstName', e.target.value)} className="mt-2" />
                     </div>
                     <div>
                       <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">Apellido *</Label>
-                      <Input
-                        id="lastName"
-                        value={profileData.lastName}
-                        onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
-                        className="mt-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      />
+                      <Input id="lastName" value={profileData.lastName} onChange={e => handleProfileChange('lastName', e.target.value)} className="mt-2" />
+                    </div>
+                    <div>
+                      <Label htmlFor="birthDate" className="text-sm font-medium text-gray-700">Fecha de nacimiento</Label>
+                      <Input id="birthDate" type="date" value={profileData.birthDate} onChange={e => handleProfileChange('birthDate', e.target.value)} className="mt-2" />
+                    </div>
+                    <div>
+                      <Label htmlFor="gender" className="text-sm font-medium text-gray-700">Género</Label>
+                      <Select value={profileData.gender} onValueChange={value => handleProfileChange('gender', value)}>
+                        <SelectTrigger className="mt-2"><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+                        <SelectContent>
+                          {GENDERS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
+                  { /* --- CÓDIGO AÑADIDO EMPIEZA AQUÍ --- */ }
                   <div>
                     <Label htmlFor="email" className="text-sm font-medium text-gray-700">Correo electrónico *</Label>
                     <div className="flex items-center gap-2 mt-2">
@@ -583,8 +690,8 @@ export default function ConfiguracionPage() {
                         id="email"
                         type="email"
                         value={profileData.email}
-                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                        className="flex-1 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        readOnly
+                        className="flex-1 bg-gray-100 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                       />
                       <div className="flex items-center gap-2">
                         {user?.emailVerified ? (
@@ -619,112 +726,118 @@ export default function ConfiguracionPage() {
                       </div>
                     )}
                   </div>
+                   { /* --- CÓDIGO AÑADIDO TERMINA AQUÍ --- */ }
 
                   <div>
-                    <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Teléfono</Label>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Input
-                        id="phone"
-                        value={profileData.phone}
-                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                        placeholder="+52 33 1234 5678"
-                        className="flex-1 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <div className="flex items-center gap-2">
-                        {user?.phoneVerified ? (
-                          <Badge className="bg-green-100 text-green-700 border-green-200">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Verificado
-                          </Badge>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleSendPhoneVerification}
-                            disabled={verifyingPhone || !profileData.phone}
-                            className="text-xs"
-                          >
-                            {verifyingPhone ? "Enviando..." : phoneVerificationSent ? "Verificar" : "Verificar"}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    {phoneVerificationSent && !user?.phoneVerified && (
-                      <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
-                        <p className="text-xs text-blue-700">Código enviado. Revisa tu teléfono y haz clic en "Verificar"</p>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setShowPhoneModal(true)}
-                          className="mt-1 text-xs text-blue-600 hover:text-blue-700"
-                        >
-                          Confirmar verificación
-                        </Button>
-                      </div>
-                    )}
+                    <Label htmlFor="tagline" className="text-sm font-medium text-gray-700">Tagline</Label>
+                    <Input id="tagline" value={profileData.tagline} onChange={e => handleProfileChange('tagline', e.target.value)} placeholder="Ej: Apasionado por el voluntariado y la tecnología." className="mt-2" />
                   </div>
-
                   <div>
                     <Label htmlFor="bio" className="text-sm font-medium text-gray-700">Biografía</Label>
-                    <Textarea
-                      id="bio"
-                      value={profileData.bio}
-                      onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                      placeholder="Cuéntanos un poco sobre ti..."
-                      className="mt-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      rows={3}
-                    />
+                    <Textarea id="bio" value={profileData.bio} onChange={e => handleProfileChange('bio', e.target.value)} placeholder="Cuéntanos un poco sobre ti..." className="mt-2" rows={3} />
                   </div>
 
                   <Separator />
 
+                  {/* --- Ubicación --- */}
                   <div>
-                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-3">
-                      <MapPin className="h-4 w-4 text-blue-500" />
-                      Ubicación
-                    </Label>
+                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-3"><MapPin className="h-4 w-4 text-blue-500" />Ubicación</Label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="city" className="text-xs text-gray-600">Ciudad</Label>
-                        <Input
-                          id="city"
-                          value={profileData.city}
-                          onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
-                          placeholder="Guadalajara"
-                          className="mt-1 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        />
+                        <Label htmlFor="country" className="text-xs text-gray-600">País</Label>
+                        <Select value={profileData.country} onValueChange={value => handleProfileChange('country', value)}>
+                          <SelectTrigger className="mt-1"><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+                          <SelectContent>
+                            {COUNTRIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
                         <Label htmlFor="state" className="text-xs text-gray-600">Estado</Label>
-                        <Input
-                          id="state"
-                          value={profileData.state}
-                          onChange={(e) => setProfileData({ ...profileData, state: e.target.value })}
-                          placeholder="Jalisco"
-                          className="mt-1 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        />
+                        <Input id="state" value={profileData.state} onChange={e => handleProfileChange('state', e.target.value)} className="mt-1" />
                       </div>
                       <div>
-                        <Label htmlFor="country" className="text-xs text-gray-600">País</Label>
-                        <Input
-                          id="country"
-                          value={profileData.country}
-                          onChange={(e) => setProfileData({ ...profileData, country: e.target.value })}
-                          placeholder="México"
-                          className="mt-1 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        />
+                        <Label htmlFor="city" className="text-xs text-gray-600">Ciudad</Label>
+                        <Input id="city" value={profileData.city} onChange={e => handleProfileChange('city', e.target.value)} className="mt-1" />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <Label htmlFor="address">Dirección</Label>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Input id="address" value={profileData.address} onChange={e => handleProfileChange('address', e.target.value)} />
+                        <Button type="button" variant="outline" onClick={handleGetLocation} disabled={locating}>{locating ? "Buscando..." : "Mi Ubicación"}</Button>
+                      </div>
+                      {profileData.latitude !== 0 && <p className="text-xs text-green-600 mt-1">Ubicación GPS capturada.</p>}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* --- Habilidades e Idiomas --- */}
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-3"><Award className="h-4 w-4 text-purple-500" />Habilidades</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {SKILLS.map(skill => (
+                          <Button key={skill} variant={profileData.skills.includes(skill) ? "default" : "outline"} size="sm" onClick={() => handleMultiSelect('skills', skill)}>{skill}</Button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-3"><Globe className="h-4 w-4 text-green-500" />Idiomas</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {LANGUAGES.map(lang => (
+                          <Button key={lang} variant={profileData.languages.includes(lang) ? "default" : "outline"} size="sm" onClick={() => handleMultiSelect('languages', lang)}>{lang}</Button>
+                        ))}
                       </div>
                     </div>
                   </div>
 
+                  <Separator />
+
+                  {/* --- Presencia en Línea --- */}
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="cvUrl" className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-3"><Briefcase className="h-4 w-4 text-blue-500" />CV (URL)</Label>
+                      <Input id="cvUrl" value={profileData.cvUrl} onChange={e => handleProfileChange('cvUrl', e.target.value)} placeholder="https://linkedin.com/in/tu-perfil/..." />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Redes Sociales</Label>
+                      <div className="space-y-3 mt-2">
+                        {profileData.socialLinks.map((social, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            {SOCIALS.find(s => s.label === social.label)?.icon}
+                            <Input
+                              placeholder={`URL de ${social.label}`}
+                              value={social.url}
+                              onChange={(e) => handleSocialLinkChange(social.label, e.target.value)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* --- Referencias --- */}
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Referencias</Label>
+                    <div className="space-y-2 mt-2">
+                      {profileData.references.map((ref, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <Input value={ref} onChange={e => handleReferenceChange(idx, e.target.value)} placeholder="Nombre y contacto de referencia" />
+                          <Button variant="ghost" size="icon" onClick={() => handleRemoveReference(idx)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={handleAddReference} className="mt-2">Agregar Referencia</Button>
+                  </div>
+
                   <div className="flex justify-end pt-4">
-                    <Button 
-                      onClick={handleSaveProfile}
-                      disabled={saving}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 group"
-                    >
-                      <Save className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
-                      {saving ? "Guardando..." : "Guardar Cambios"}
+                    <Button onClick={handleSaveProfile} disabled={saving} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
+                      <Save className="h-4 w-4 mr-2" />
+                      {saving ? "Guardando..." : "Guardar Cambios de Perfil"}
                     </Button>
                   </div>
                 </CardContent>
@@ -758,9 +871,7 @@ export default function ConfiguracionPage() {
                         onCheckedChange={(checked) => setNotificationSettings({ ...notificationSettings, emailNotifications: checked })}
                       />
                     </div>
-
                     <Separator />
-
                     <div className="flex items-center justify-between">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Notificaciones push</Label>
@@ -771,9 +882,7 @@ export default function ConfiguracionPage() {
                         onCheckedChange={(checked) => setNotificationSettings({ ...notificationSettings, pushNotifications: checked })}
                       />
                     </div>
-
                     <Separator />
-
                     <div className="flex items-center justify-between">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Recordatorios de eventos</Label>
@@ -784,9 +893,7 @@ export default function ConfiguracionPage() {
                         onCheckedChange={(checked) => setNotificationSettings({ ...notificationSettings, eventReminders: checked })}
                       />
                     </div>
-
                     <Separator />
-
                     <div className="flex items-center justify-between">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Nuevos eventos</Label>
@@ -797,9 +904,7 @@ export default function ConfiguracionPage() {
                         onCheckedChange={(checked) => setNotificationSettings({ ...notificationSettings, newEventAlerts: checked })}
                       />
                     </div>
-
                     <Separator />
-
                     <div className="flex items-center justify-between">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Actualizaciones de aplicaciones</Label>
@@ -810,9 +915,7 @@ export default function ConfiguracionPage() {
                         onCheckedChange={(checked) => setNotificationSettings({ ...notificationSettings, applicationUpdates: checked })}
                       />
                     </div>
-
                     <Separator />
-
                     <div className="flex items-center justify-between">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Actualizaciones de la comunidad</Label>
@@ -824,9 +927,8 @@ export default function ConfiguracionPage() {
                       />
                     </div>
                   </div>
-
                   <div className="flex justify-end pt-4">
-                    <Button 
+                    <Button
                       onClick={handleSaveNotifications}
                       disabled={saving}
                       className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 group"
@@ -857,8 +959,8 @@ export default function ConfiguracionPage() {
                 <CardContent className="p-6 space-y-6">
                   <div>
                     <Label className="text-sm font-medium text-gray-700">Visibilidad del perfil</Label>
-                    <Select 
-                      value={privacySettings.profileVisibility} 
+                    <Select
+                      value={privacySettings.profileVisibility}
                       onValueChange={(value: 'public' | 'private' | 'friends') => setPrivacySettings({ ...privacySettings, profileVisibility: value })}
                     >
                       <SelectTrigger className="mt-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500">
@@ -886,9 +988,7 @@ export default function ConfiguracionPage() {
                       </SelectContent>
                     </Select>
                   </div>
-
                   <Separator />
-
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -900,9 +1000,7 @@ export default function ConfiguracionPage() {
                         onCheckedChange={(checked) => setPrivacySettings({ ...privacySettings, showEmail: checked })}
                       />
                     </div>
-
                     <Separator />
-
                     <div className="flex items-center justify-between">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Mostrar teléfono</Label>
@@ -913,9 +1011,7 @@ export default function ConfiguracionPage() {
                         onCheckedChange={(checked) => setPrivacySettings({ ...privacySettings, showPhone: checked })}
                       />
                     </div>
-
                     <Separator />
-
                     <div className="flex items-center justify-between">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Mostrar ubicación</Label>
@@ -926,9 +1022,7 @@ export default function ConfiguracionPage() {
                         onCheckedChange={(checked) => setPrivacySettings({ ...privacySettings, showLocation: checked })}
                       />
                     </div>
-
                     <Separator />
-
                     <div className="flex items-center justify-between">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Permitir mensajes</Label>
@@ -940,9 +1034,8 @@ export default function ConfiguracionPage() {
                       />
                     </div>
                   </div>
-
                   <div className="flex justify-end pt-4">
-                    <Button 
+                    <Button
                       onClick={handleSavePrivacy}
                       disabled={saving}
                       className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 group"
@@ -974,7 +1067,6 @@ export default function ConfiguracionPage() {
                   {/* Cambiar contraseña */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-900">Cambiar Contraseña</h3>
-                    
                     <div>
                       <Label htmlFor="currentPassword" className="text-sm font-medium text-gray-700">Contraseña actual</Label>
                       <div className="relative mt-2">
@@ -998,7 +1090,6 @@ export default function ConfiguracionPage() {
                         </button>
                       </div>
                     </div>
-
                     <div>
                       <Label htmlFor="newPassword" className="text-sm font-medium text-gray-700">Nueva contraseña</Label>
                       <Input
@@ -1009,7 +1100,6 @@ export default function ConfiguracionPage() {
                         className="mt-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                       />
                     </div>
-
                     <div>
                       <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirmar nueva contraseña</Label>
                       <Input
@@ -1020,8 +1110,7 @@ export default function ConfiguracionPage() {
                         className="mt-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                       />
                     </div>
-
-                    <Button 
+                    <Button
                       onClick={handleChangePassword}
                       disabled={saving}
                       className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 group"
@@ -1036,7 +1125,6 @@ export default function ConfiguracionPage() {
                   {/* Eliminar cuenta */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-red-600">Zona de Peligro</h3>
-                    
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                       <div className="flex items-start gap-3">
                         <Trash2 className="h-5 w-5 text-red-500 mt-0.5" />
@@ -1045,7 +1133,7 @@ export default function ConfiguracionPage() {
                           <p className="text-sm text-red-600 mt-1">
                             Una vez que elimines tu cuenta, no hay vuelta atrás. Por favor, ten cuidado.
                           </p>
-                          <Button 
+                          <Button
                             variant="destructive"
                             onClick={handleDeleteAccount}
                             disabled={saving}
@@ -1083,21 +1171,4 @@ export default function ConfiguracionPage() {
       </div>
     </div>
   )
-
-import Link from "next/link";
-import { Settings } from "lucide-react";
-
-export default function ConfiguracionPage() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col items-center justify-center px-4">
-      <div className="bg-white rounded-3xl shadow-xl p-8 max-w-md w-full flex flex-col items-center border border-blue-100">
-        <div className="mb-4">
-          <Settings className="h-10 w-10 text-blue-500" />
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Configuración</h1>
-        <div className="text-gray-500 text-sm mb-6 text-center">Próximamente podrás personalizar tu experiencia aquí.</div>
-        <Link href="/dashboard" className="mt-2 inline-block px-6 py-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold shadow hover:from-blue-700 hover:to-purple-700 transition-all">Regresar al Dashboard</Link>
-      </div>
-    </div>
-  );
-} 
+}
