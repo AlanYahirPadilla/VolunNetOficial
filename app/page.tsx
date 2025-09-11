@@ -171,7 +171,7 @@ export default function HomePage() {
                   className="text-lg px-8 py-6 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/20"
                   asChild
                 >
-                  <Link href="/registro">Comenzar como Voluntario</Link>
+                  <Link href="/registro/voluntario">Comenzar como Voluntario</Link>
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -181,7 +181,7 @@ export default function HomePage() {
                   className="text-lg px-8 py-6 rounded-full border-2 hover:bg-blue-50 transition-colors"
                   asChild
                 >
-                  <Link href="/organizaciones/registro">Registrar Organización</Link>
+                  <Link href="/registro/organizacion">Registrar Organización</Link>
                 </Button>
               </motion.div>
             </div>

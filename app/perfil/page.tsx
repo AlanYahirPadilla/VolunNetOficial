@@ -225,7 +225,7 @@ export default function PerfilVoluntario() {
             <div className="flex-1 mx-8 max-w-xl">
               <input
                 type="text"
-                placeholder="Buscar eventos, iglesiasSSS..."
+                placeholder="Buscar eventos, iglesias..."
                 className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-gray-50 text-gray-700 shadow-sm"
               />
             </div>
