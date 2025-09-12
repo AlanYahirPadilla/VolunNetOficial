@@ -178,19 +178,18 @@ export default function Dashboard() {
       updateLoadingStep("user", "loading")
       const currentUser = await getCurrentUser()
       if (currentUser) {
-        setUser(currentUser)
-        // Obtener perfil de voluntario
-        try {
-          const res = await fetch("/api/perfil/voluntario", { 
-            credentials: "include",
-            signal: abortController.current?.signal
-          })
-          if (res.ok) {
-            const data = await res.json()
-            setVoluntario(data.voluntario)
-          }
-        } catch (profileError) {
-          console.warn("Error cargando perfil de voluntario:", profileError)
+        // We fetch the full profile which includes the updated user object
+        const res = await fetch("/api/perfil/voluntario", { 
+          credentials: "include",
+          signal: abortController.current?.signal
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setUser(data.user); // This user object is fresh from the DB
+          setVoluntario(data.voluntario)
+        } else {
+          // Fallback if profile fetch fails
+          setUser(currentUser)
         }
         updateLoadingStep("user", "completed")
       } else {
@@ -242,20 +241,18 @@ export default function Dashboard() {
       updateLoadingStep("events", "loading")
       console.log("🔄 Iniciando carga de eventos desde API...")
       
-      // Crear un nuevo AbortController específico para esta petición
       const eventsAbortController = new AbortController()
       const timeoutId = setTimeout(() => {
         console.log("⏰ Timeout de 30 segundos alcanzado, cancelando petición de eventos")
         eventsAbortController.abort()
-      }, 30000) // 30 segundos de timeout
+      }, 30000)
       
       try {
-        // Cargar eventos reales desde la API
         const response = await fetch('/api/eventos?limit=10', {
           signal: eventsAbortController.signal
         })
         
-        clearTimeout(timeoutId) // Limpiar timeout si la petición se completa
+        clearTimeout(timeoutId)
         console.log("📡 Respuesta de la API:", response.status, response.statusText)
         
         if (!response.ok) {
@@ -284,13 +281,12 @@ export default function Dashboard() {
             benefits: e.benefits || [],
             status: e.status,
             imageUrl: e.imageUrl,
-            hasApplied: false, // Se actualizará después
-            applicationStatus: undefined, // Se actualizará después
+            hasApplied: false,
+            applicationStatus: undefined,
           }))
           
           console.log("🎯 Eventos procesados:", realEvents)
           
-          // Verificar el estado de postulación para cada evento
           const eventsWithApplicationStatus = await Promise.all(
             realEvents.map(async (event) => {
               try {
@@ -313,92 +309,29 @@ export default function Dashboard() {
           safeStateUpdate(setEvents, eventsWithApplicationStatus)
         } else {
           console.log("⚠️ No se encontraron eventos reales, usando eventos de ejemplo")
-          // Fallback a eventos de ejemplo si no hay eventos reales
           const sampleEvents = [
-            {
-              id: "sample-1",
-              title: "Limpieza de Playa Vallarta",
-              description: "Actividad de limpieza en la playa principal de Puerto Vallarta",
-              organization_name: "EcoMar Jalisco",
-              city: "Puerto Vallarta",
-              state: "Jalisco",
-              start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-              max_volunteers: 20,
-              current_volunteers: 8,
-              category_name: "Medio Ambiente",
-              skills: ["Trabajo en equipo", "Resistencia física"],
-            },
-            {
-              id: "sample-2",
-              title: "Taller de Programación para Niños",
-              description: "Enseñanza básica de programación a niños de primaria",
-              organization_name: "CodeForAll",
-              city: "Guadalajara",
-              state: "Jalisco",
-              start_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-              max_volunteers: 10,
-              current_volunteers: 3,
-              category_name: "Educación",
-              skills: ["Programación", "Paciencia", "Comunicación"],
-            },
-            {
-              id: "sample-3",
-              title: "Donación de Alimentos",
-              description: "Recolección y distribución de alimentos para familias necesitadas",
-              organization_name: "Banco de Alimentos GDL",
-              city: "Zapopan",
-              state: "Jalisco",
-              start_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-              max_volunteers: 15,
-              current_volunteers: 12,
-              category_name: "Asistencia Social",
-              skills: ["Organización", "Trabajo en equipo"],
-            },
+            { id: "sample-1", title: "Limpieza de Playa Vallarta", description: "Actividad de limpieza en la playa principal de Puerto Vallarta", organization_name: "EcoMar Jalisco", city: "Puerto Vallarta", state: "Jalisco", start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 20, current_volunteers: 8, category_name: "Medio Ambiente", skills: ["Trabajo en equipo", "Resistencia física"]},
+            { id: "sample-2", title: "Taller de Programación para Niños", description: "Enseñanza básica de programación a niños de primaria", organization_name: "CodeForAll", city: "Guadalajara", state: "Jalisco", start_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 10, current_volunteers: 3, category_name: "Educación", skills: ["Programación", "Paciencia", "Comunicación"]},
+            { id: "sample-3", title: "Donación de Alimentos", description: "Recolección y distribución de alimentos para familias necesitadas", organization_name: "Banco de Alimentos GDL", city: "Zapopan", state: "Jalisco", start_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 15, current_volunteers: 12, category_name: "Asistencia Social", skills: ["Organización", "Trabajo en equipo"]},
           ]
           safeStateUpdate(setEvents, sampleEvents)
         }
         
         updateLoadingStep("events", "completed")
       } catch (fetchError) {
-        clearTimeout(timeoutId) // Limpiar timeout en caso de error
+        clearTimeout(timeoutId)
         throw fetchError
       }
     } catch (eventsError) {
       if (eventsError instanceof Error && eventsError.name === 'AbortError') {
         console.log("🔄 Carga de eventos cancelada por timeout")
-        // Mostrar eventos de ejemplo en caso de timeout
         const timeoutEvents = [
-          {
-            id: "timeout-1",
-            title: "Limpieza de Playa Vallarta",
-            description: "Actividad de limpieza en la playa principal de Puerto Vallarta",
-            organization_name: "EcoMar Jalisco",
-            city: "Puerto Vallarta",
-            state: "Jalisco",
-            start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-            max_volunteers: 20,
-            current_volunteers: 8,
-            category_name: "Medio Ambiente",
-            skills: ["Trabajo en equipo", "Resistencia física"],
-          },
-          {
-            id: "timeout-2",
-            title: "Taller de Programación para Niños",
-            description: "Enseñanza básica de programación a niños de primaria",
-            organization_name: "CodeForAll",
-            city: "Guadalajara",
-            state: "Jalisco",
-            start_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-            max_volunteers: 10,
-            current_volunteers: 3,
-            category_name: "Educación",
-            skills: ["Programación", "Paciencia", "Comunicación"],
-          },
+          { id: "timeout-1", title: "Limpieza de Playa Vallarta", description: "Actividad de limpieza en la playa principal de Puerto Vallarta", organization_name: "EcoMar Jalisco", city: "Puerto Vallarta", state: "Jalisco", start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 20, current_volunteers: 8, category_name: "Medio Ambiente", skills: ["Trabajo en equipo", "Resistencia física"]},
+          { id: "timeout-2", title: "Taller de Programación para Niños", description: "Enseñanza básica de programación a niños de primaria", organization_name: "CodeForAll", city: "Guadalajara", state: "Jalisco", start_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 10, current_volunteers: 3, category_name: "Educación", skills: ["Programación", "Paciencia", "Comunicación"]},
         ]
         safeStateUpdate(setEvents, timeoutEvents)
         updateLoadingStep("events", "completed")
         
-        // Cargar eventos recientes completados
         try {
           const completedResult = await getRecentCompletedEvents()
           if (completedResult.events) {
@@ -415,48 +348,11 @@ export default function Dashboard() {
       console.error("❌ Error cargando eventos:", eventsError)
       updateLoadingStep("events", "error")
       
-      // En caso de error, mostrar eventos de ejemplo
       console.log("🔄 Mostrando eventos de ejemplo debido al error")
       const fallbackEvents = [
-        {
-          id: "fallback-1",
-          title: "Limpieza de Playa Vallarta",
-          description: "Actividad de limpieza en la playa principal de Puerto Vallarta",
-          organization_name: "EcoMar Jalisco",
-          city: "Puerto Vallarta",
-          state: "Jalisco",
-          start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-          max_volunteers: 20,
-          current_volunteers: 8,
-          category_name: "Medio Ambiente",
-          skills: ["Trabajo en equipo", "Resistencia física"],
-        },
-        {
-          id: "fallback-2",
-          title: "Taller de Programación para Niños",
-          description: "Enseñanza básica de programación a niños de primaria",
-          organization_name: "CodeForAll",
-          city: "Guadalajara",
-          state: "Jalisco",
-          start_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-          max_volunteers: 10,
-          current_volunteers: 3,
-          category_name: "Educación",
-          skills: ["Programación", "Paciencia", "Comunicación"],
-        },
-        {
-          id: "fallback-3",
-          title: "Donación de Alimentos",
-          description: "Recolección y distribución de alimentos para familias necesitadas",
-          organization_name: "Banco de Alimentos GDL",
-          city: "Zapopan",
-          state: "Jalisco",
-          start_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          max_volunteers: 15,
-          current_volunteers: 12,
-          category_name: "Asistencia Social",
-          skills: ["Organización", "Trabajo en equipo"],
-        },
+        { id: "fallback-1", title: "Limpieza de Playa Vallarta", description: "Actividad de limpieza en la playa principal de Puerto Vallarta", organization_name: "EcoMar Jalisco", city: "Puerto Vallarta", state: "Jalisco", start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 20, current_volunteers: 8, category_name: "Medio Ambiente", skills: ["Trabajo en equipo", "Resistencia física"]},
+        { id: "fallback-2", title: "Taller de Programación para Niños", description: "Enseñanza básica de programación a niños de primaria", organization_name: "CodeForAll", city: "Guadalajara", state: "Jalisco", start_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 10, current_volunteers: 3, category_name: "Educación", skills: ["Programación", "Paciencia", "Comunicación"]},
+        { id: "fallback-3", title: "Donación de Alimentos", description: "Recolección y distribución de alimentos para familias necesitadas", organization_name: "Banco de Alimentos GDL", city: "Zapopan", state: "Jalisco", start_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 15, current_volunteers: 12, category_name: "Asistencia Social", skills: ["Organización", "Trabajo en equipo"]},
       ]
       safeStateUpdate(setEvents, fallbackEvents)
     }
@@ -466,7 +362,6 @@ export default function Dashboard() {
     try {
       updateLoadingStep("notifications", "loading")
       
-      // Intentar cargar notificaciones reales desde la API
       const response = await fetch('/api/notifications?limit=5', {
         credentials: 'include'
       })
@@ -476,32 +371,10 @@ export default function Dashboard() {
         const notificationsData = data.notifications || []
         setNotifications(notificationsData)
       } else {
-        // Fallback a notificaciones mock si la API falla
         const notificationsData = [
-          {
-            id: "1",
-            title: "Nuevo evento disponible",
-            message: "Se ha publicado un nuevo evento de limpieza de playa",
-            type: "info",
-            created_at: new Date().toISOString(),
-            read: false,
-          },
-          {
-            id: "2",
-            title: "Aplicación aceptada",
-            message: "Tu aplicación para el taller de programación ha sido aceptada",
-            type: "success",
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            read: false,
-          },
-          {
-            id: "3",
-            title: "Recordatorio de evento",
-            message: "Tu evento de mañana comienza a las 9:00 AM",
-            type: "reminder",
-            created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-            read: true,
-          },
+          { id: "1", title: "Nuevo evento disponible", message: "Se ha publicado un nuevo evento de limpieza de playa", type: "info", created_at: new Date().toISOString(), read: false },
+          { id: "2", title: "Aplicación aceptada", message: "Tu aplicación para el taller de programación ha sido aceptada", type: "success", created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), read: false },
+          { id: "3", title: "Recordatorio de evento", message: "Tu evento de mañana comienza a las 9:00 AM", type: "reminder", created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), read: true },
         ]
         setNotifications(notificationsData)
       }
@@ -515,7 +388,6 @@ export default function Dashboard() {
   }, [updateLoadingStep])
 
   useEffect(() => {
-    // Prevent double execution
     if (isInitialized.current) {
       return
     }
@@ -525,13 +397,8 @@ export default function Dashboard() {
       console.log("🚀 Iniciando carga optimizada del dashboard...")
 
       try {
-// Load user data first
         await loadUserData()
-
-        // Load user events
         await loadMyEvents()
-
-        // Load other data in parallel with proper error handling
         await Promise.allSettled([
           loadStatsData(),
           loadEventsData(),
@@ -559,7 +426,6 @@ setLoadingSteps((prev: LoadingStep[]) =>
     }
 
     loadData()
-// Cleanup function
     return () => {
       if (abortController.current) {
         abortController.current.abort()
@@ -567,7 +433,6 @@ setLoadingSteps((prev: LoadingStep[]) =>
     }
   }, [loadUserData, loadMyEvents, loadStatsData, loadEventsData, loadNotificationsData])
 
-  // Datos para la barra lateral
   const sidebarStats = {
     completedEvents: stats?.completed_events || 5,
     totalHours: stats?.total_hours || 24,
@@ -598,21 +463,18 @@ const handleEventClick = async (event: Event) => {
     setModalMessage('Verificando estado de postulación...')
 
     try {
-      // Verificar si ya se ha postulado
       const checkResponse = await fetch(`/api/events/apply?eventId=${event.id}&volunteerId=${user.id}`)
       
       if (checkResponse.ok) {
         const checkData = await checkResponse.json()
         
         if (checkData.applications && checkData.applications.length > 0) {
-          // Ya se ha postulado
           setApplicationStatus('already-applied')
           setModalMessage('Ya te has postulado a este evento anteriormente')
           return
         }
       }
 
-      // Si no se ha postulado, mostrar modal de confirmación
       setApplicationStatus('can-apply')
       setModalMessage('¿Estás seguro de que quieres postularte a este evento?')
     } catch (error) {
@@ -638,7 +500,6 @@ const handleEventClick = async (event: Event) => {
       })
 
       if (response.ok) {
-        // Actualizar el estado local para mostrar que se aplicó
         setEvents(prev => prev.map(e => 
           e.id === selectedEvent.id 
             ? { 
@@ -653,7 +514,6 @@ const handleEventClick = async (event: Event) => {
         setApplicationStatus('success')
         setModalMessage('¡Postulación enviada exitosamente!')
         
-        // Cerrar modal después de 2 segundos
         setTimeout(() => {
           setShowApplicationModal(false)
           setSelectedEvent(null)
@@ -684,7 +544,6 @@ const handleEventClick = async (event: Event) => {
     setModalMessage('')
   }
 
-  // Mapeo de iconos por categoría
   const CATEGORY_ICONS: Record<string, string> = {
     "Educación": "🎓",
     "Medio Ambiente": "🌱",
@@ -713,15 +572,12 @@ const handleEventClick = async (event: Event) => {
     )
   }
 
-  // --- NUEVO LAYOUT ---
   return (
 <DashboardErrorBoundary>
       <AdaptiveLoading type="dashboard" isLoading={loading} loadingSteps={loadingSteps}>
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
-        {/* Header superior tipo LinkedIn */}
         <div className="sticky top-0 z-30 bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
-            {/* Logo con corazón azul */}
             <div className="flex items-center gap-2">
               <button
                 className="flex items-center gap-2 focus:outline-none"
@@ -733,7 +589,6 @@ const handleEventClick = async (event: Event) => {
                 <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">VolunNet</span>
               </button>
             </div>
-            {/* Barra de búsqueda */}
             <div className="flex-1 mx-8 max-w-xl">
               <input
                 type="text"
@@ -741,7 +596,6 @@ const handleEventClick = async (event: Event) => {
                 className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-gray-50 text-gray-700 shadow-sm"
               />
             </div>
-            {/* Navegación */}
             <div className="flex items-center gap-6">
               <nav className="flex gap-2 text-gray-600 text-sm font-medium">
                 <Link href="/dashboard" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative">
@@ -765,19 +619,14 @@ const handleEventClick = async (event: Event) => {
                   <span className="absolute left-0 -bottom-0.5 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
                 </Link>
               </nav>
-              {/* Separador visual */}
               <div className="w-px h-8 bg-gray-200 mx-2" />
-              {/* Avatar usuario con menú */}
               <UserMenu user={user} />
             </div>
           </div>
         </div>
 
-        {/* Grid principal 3 columnas */}
         <div className="flex-1 max-w-7xl mx-auto w-full px-2 sm:px-4 py-6 grid grid-cols-1 md:grid-cols-[minmax(0,320px)_1fr_minmax(0,320px)] gap-6">
-          {/* Columna Izquierda: Perfil y Próximos Eventos (más angosta y moderna) */}
           <div className="space-y-6 w-full max-w-xs mx-auto">
-            {/* Tarjeta Perfil rediseñada animada */}
             <motion.div
               className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center border border-blue-50 relative overflow-visible"
               initial={{ opacity: 0, y: 30 }}
@@ -786,15 +635,26 @@ const handleEventClick = async (event: Event) => {
               whileHover={{ scale: 1.025, boxShadow: "0 8px 32px 0 rgba(80, 112, 255, 0.10)" }}
             >
               <div className="relative mb-3">
-                <div className="h-24 w-24 rounded-full bg-gradient-to-tr from-blue-100 to-purple-100 border-4 border-white shadow-lg flex items-center justify-center text-4xl text-blue-500 font-bold">
-                  {user?.firstName?.[0] || 'M'}
+                {/* ========================================================== */}
+                {/* ================ AQUÍ ESTÁ LA CORRECCIÓN =============== */}
+                {/* ========================================================== */}
+                <div className="h-24 w-24 rounded-full bg-gradient-to-tr from-blue-100 to-purple-100 border-4 border-white shadow-lg flex items-center justify-center text-4xl text-blue-500 font-bold overflow-hidden">
+                  {user?.avatar ? (
+                    <img 
+                      src={user.avatar} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    user?.firstName?.[0] || 'M'
+                  )}
                 </div>
+                {/* ========================================================== */}
+                {/* ========================================================== */}
                 <span className="absolute -bottom-2 right-0 bg-yellow-400 text-white text-xs px-2 py-0.5 rounded-full shadow font-semibold border-2 border-white">★ Oro</span>
               </div>
               <div className="text-lg font-bold text-gray-900 text-center">{user?.firstName || 'María'} {user?.lastName || 'González'}</div>
-              {/* Rol dinámico */}
               <div className="text-xs text-blue-700 font-semibold mb-1">{user?.role === 'VOLUNTEER' ? 'Voluntario' : user?.role || ''}</div>
-              {/* Estrellas de calificación fraccionarias */}
               <div className="flex gap-1 mb-2 mt-1 items-center">
                 {Array.from({ length: 5 }).map((_, i) => {
                   const rating = voluntario?.rating ?? stats?.averageRating ?? 0;
@@ -813,12 +673,10 @@ const handleEventClick = async (event: Event) => {
                 })}
                 <span className="ml-2 text-yellow-600 font-semibold text-sm">{(voluntario?.rating ?? stats?.averageRating ?? 0).toFixed(1)}</span>
               </div>
-              {/* Ubicación real: ciudad y país */}
               <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
                 <Home className="h-4 w-4 text-blue-400" />
                 <span>{voluntario?.city && voluntario?.country ? `${voluntario.city}, ${voluntario.country}` : 'Ubicación no registrada'}</span>
               </div>
-              {/* Eventos y horas reales */}
               <div className="flex gap-6 mt-2 mb-1">
                 <div className="flex flex-col items-center">
                   <span className="text-xl font-bold text-blue-700">{voluntario?.eventsParticipated ?? stats?.eventsParticipated ?? 0}</span>
@@ -830,7 +688,6 @@ const handleEventClick = async (event: Event) => {
                 </div>
               </div>
             </motion.div>
-            {/* Próximos Eventos rediseñados animada */}
             <motion.div
               className="bg-white rounded-2xl shadow-lg p-5 border border-blue-50"
               initial={{ opacity: 0, y: 30 }}
@@ -863,9 +720,7 @@ const handleEventClick = async (event: Event) => {
             </motion.div>
           </div>
 
-          {/* Columna Central: Tabs y Eventos */}
           <div className="space-y-6 col-span-1">
-            {/* Tabs de eventos */}
             <Tabs defaultValue="disponibles" className="w-full">
               <TabsList className="w-full bg-gray-50 border rounded-lg mb-4">
                 <TabsTrigger value="disponibles" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Eventos Disponibles</TabsTrigger>
@@ -884,7 +739,6 @@ const handleEventClick = async (event: Event) => {
         whileHover={{ scale: 1.02 }}
         className="bg-white border border-gray-100 rounded-3xl shadow-md hover:shadow-xl transition-all overflow-hidden flex flex-col"
       >
-        {/* Imagen de portada o icono */}
         <div className="relative h-40 bg-gradient-to-r from-blue-100 to-purple-100 flex items-center justify-center">
           <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-medium bg-blue-600 text-white shadow">
             {event.category_name}
@@ -892,7 +746,6 @@ const handleEventClick = async (event: Event) => {
           <Calendar className="h-12 w-12 text-blue-500 opacity-70" />
         </div>
 
-        {/* Contenido */}
         <div className="flex-1 p-6 flex flex-col justify-between">
           <div>
             <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-2">
@@ -907,7 +760,6 @@ const handleEventClick = async (event: Event) => {
               {event.description}
             </p>
 
-            {/* Info: fecha y ubicación */}
             <div className="flex flex-wrap gap-3 text-xs text-gray-500 mb-3">
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4 text-blue-400" />
@@ -928,7 +780,6 @@ const handleEventClick = async (event: Event) => {
               </span>
             </div>
 
-            {/* Barra de progreso */}
             <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
               <div
                 className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
@@ -937,7 +788,6 @@ const handleEventClick = async (event: Event) => {
             </div>
           </div>
 
-          {/* Botones */}
           <div className="flex justify-between items-center mt-4">
             <ApplicationStatusBadge 
               hasApplied={event.hasApplied}
@@ -1012,12 +862,10 @@ const handleEventClick = async (event: Event) => {
           transition={{ delay: idx * 0.1 }}
           className="bg-white border border-gray-100 rounded-3xl shadow-md hover:shadow-xl transition-all p-6 flex flex-col sm:flex-row gap-6"
         >
-          {/* Imagen o ícono lateral */}
           <div className="flex-shrink-0 w-full sm:w-40 h-32 sm:h-auto bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center">
             <Calendar className="h-12 w-12 text-blue-500" />
           </div>
 
-          {/* Contenido */}
           <div className="flex-1 flex flex-col justify-between">
             <div>
               <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -1038,7 +886,6 @@ const handleEventClick = async (event: Event) => {
                 {event.description}
               </p>
 
-              {/* Fecha y voluntarios */}
               <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 mt-3">
                 <span className="flex items-center gap-1">
                   <Calendar className="h-4 w-4 text-blue-400" />
@@ -1055,7 +902,6 @@ const handleEventClick = async (event: Event) => {
                 </span>
               </div>
 
-              {/* Barra de progreso */}
               <div className="w-full bg-gray-100 rounded-full h-2 mt-3 overflow-hidden">
                 <div
                   className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
@@ -1064,7 +910,6 @@ const handleEventClick = async (event: Event) => {
               </div>
             </div>
 
-            {/* Acciones */}
             <div className="flex gap-2 mt-4">
               <Button
                 variant="outline"
@@ -1090,7 +935,6 @@ const handleEventClick = async (event: Event) => {
 </TabsContent>
 
               
-              {/* Tab de Notificaciones */}
               <TabsContent value="notificaciones">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center mb-4">
@@ -1106,7 +950,6 @@ const handleEventClick = async (event: Event) => {
                     </Button>
                   </div>
                   
-                  {/* Lista de notificaciones recientes */}
                   <div className="space-y-3">
                     {notifications.length > 0 ? (
                       notifications.slice(0, 5).map((notification, idx) => (
@@ -1153,7 +996,6 @@ const handleEventClick = async (event: Event) => {
                 </div>
               </TabsContent>
               
-              {/* Tab de Calificaciones */}
               <TabsContent value="calificaciones">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center mb-4">
@@ -1169,7 +1011,6 @@ const handleEventClick = async (event: Event) => {
                     </Button>
                   </div>
                   
-                  {/* Lista de eventos que necesitan calificación */}
                   <div className="space-y-3">
                     {completedEvents.filter(event => event.applicationStatus === 'COMPLETED').length > 0 ? (
                       completedEvents
@@ -1221,9 +1062,7 @@ const handleEventClick = async (event: Event) => {
             </Tabs>
           </div>
 
-          {/* Columna Derecha: Estadísticas y Voluntarios Destacados */}
           <div className="space-y-6 w-full max-w-xs mx-auto">
-            {/* Estadísticas del Mes rediseñadas animada */}
             <motion.div
               className="bg-white rounded-2xl shadow-lg p-6 border border-blue-50"
               initial={{ opacity: 0, y: 30 }}
@@ -1259,7 +1098,6 @@ const handleEventClick = async (event: Event) => {
                 </div>
               </div>
             </motion.div>
-            {/* Voluntarios Destacados rediseñados animada */}
             <motion.div
               className="bg-white rounded-2xl shadow-lg p-6 border border-blue-50"
               initial={{ opacity: 0, y: 30 }}
@@ -1292,11 +1130,9 @@ const handleEventClick = async (event: Event) => {
           </div>
         </div>
       </div>
-{/* Modal de Postulación */}
       {showApplicationModal && selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
-            {/* Header */}
             <div className="text-center mb-6">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
                 {applicationStatus === 'checking' && (
@@ -1333,7 +1169,6 @@ const handleEventClick = async (event: Event) => {
               </p>
             </div>
 
-            {/* Detalles del evento */}
             {selectedEvent && (
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <h4 className="font-semibold text-gray-900 mb-2">{selectedEvent.title}</h4>
@@ -1361,7 +1196,6 @@ const handleEventClick = async (event: Event) => {
               </div>
             )}
 
-            {/* Botones de acción */}
             <div className="flex gap-3">
               {applicationStatus === 'already-applied' && (
                 <button
@@ -1427,7 +1261,6 @@ const handleEventClick = async (event: Event) => {
   )
 }
 
-// Menú de usuario/avatar
 function UserMenu({ user }: { user: any }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -1450,11 +1283,19 @@ function UserMenu({ user }: { user: any }) {
   return (
     <div className="relative" ref={menuRef}>
       <button
-        className="h-9 w-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold focus:outline-none focus:ring-2 focus:ring-blue-300"
+        className="h-9 w-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold focus:outline-none focus:ring-2 focus:ring-blue-300 overflow-hidden"
         onClick={() => setOpen((v) => !v)}
         aria-label="Abrir menú de usuario"
       >
-        {user?.firstName?.[0] || 'M'}
+        {user?.avatar ? (
+          <img 
+            src={user.avatar} 
+            alt="Avatar" 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          user?.firstName?.[0] || 'Y'
+        )}
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fade-in">

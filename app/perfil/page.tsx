@@ -118,11 +118,20 @@ function UserMenu({ user }: { user: any }) {
   return (
     <div className="relative" ref={menuRef}>
       <button
-        className="h-9 w-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold focus:outline-none focus:ring-2 focus:ring-blue-300"
+        className="h-9 w-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold focus:outline-none focus:ring-2 focus:ring-blue-300 overflow-hidden"
         onClick={() => setOpen((v) => !v)}
         aria-label="Abrir menú de usuario"
       >
-        {user?.firstName?.[0] || 'Y'}
+        {user?.avatar ? (
+          <img 
+            src={user.avatar} 
+            alt="Avatar" 
+            className="w-full h-full object-cover" 
+          />
+        ) : (
+          // Si NO tiene avatar, muestra la inicial como antes
+          user?.firstName?.[0] || 'Y'
+        )}
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fade-in">
