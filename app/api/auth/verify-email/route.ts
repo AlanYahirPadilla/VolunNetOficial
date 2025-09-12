@@ -32,14 +32,16 @@ export async function POST(request: NextRequest) {
           "createdAt" = NOW()
       `;
 
-      // --- ¡AQUÍ ESTÁ LA MAGIA! ---
       // Reemplazamos el console.log con la llamada a Resend
       try {
         await resend.emails.send({
-          from: 'VolunNet <onboarding@resend.dev>', // Usa este para empezar. Luego cámbialo a tu dominio verificado.
-          to: email, // El email del usuario
+          from: 'VolunNet <onboarding@resend.dev>', 
+          
+          // IMPORTANTE: La dirección 'to' DEBE SER el correo con el que te registraste en Resend.
+          to: email, 
+          
           subject: 'Tu código de verificación para VolunNet',
-          react: VerificationEmail({ verificationCode: verificationCode }), // Usamos nuestra plantilla de React
+          react: VerificationEmail({ verificationCode: verificationCode }),
         });
 
         console.log(`Correo de verificación enviado a ${email}`);

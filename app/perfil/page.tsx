@@ -7,6 +7,7 @@ import Link from "next/link"
 import { AdaptiveLoading } from "@/components/ui/adaptive-loading"
 import ProfileCompletionCard from "@/components/registro/profile-completion-card"
 import ProfileEditModal from "@/components/registro/profile-edit-modal";
+import AvatarSelectionModal from "@/components/registro/avatar-selection-modal";
 import { FaFacebook, FaInstagram, FaTwitter } from "react-icons/fa";
 
 // Extensión del mockUser para mostrar todos los campos nuevos del perfil
@@ -60,6 +61,20 @@ const mockUser = {
   ],
   birthDateFormatted: "12 de mayo de 1998",
 }
+
+const AVATARS = [
+  '/avatars/avatar1.png',
+  '/avatars/avatar2.png',
+  '/avatars/avatar3.png',
+  '/avatars/avatar4.png',
+  '/avatars/avatar5.png',
+  '/avatars/avatar6.png',
+  '/avatars/avatar7.png',
+  '/avatars/avatar8.png',
+  '/avatars/avatar9.png',
+  '/avatars/avatar10.png',
+  '/avatars/avatar11.png',
+];
 
 // Mock de eventos participados
 const mockEventos = [
@@ -150,8 +165,12 @@ export default function PerfilVoluntario() {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
+  
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+
+
   useEffect(() => {
-    fetch("/api/perfil/voluntario", { credentials: "include" })
+    fetch("/api/perfil/voluntario", { credentials: "include", cache:'no-store'})
       .then(res => {
         if (res.status === 401) {
           router.push("/");
@@ -161,15 +180,45 @@ export default function PerfilVoluntario() {
       })
       .then(data => {
         if (!data) return;
+        console.log("Datos recibidos del API al cargar la pagina:", data);
         setUser(data.user);
         setVoluntario(data.voluntario);
         setEditData(data.voluntario);
         setLoading(false);
       });
   }, []);
+
+  const handleSaveAvatar = async (avatarUrl: string) => {
+    if (!avatarUrl) return;
+
+    try {
+      // Usamos el mismo endpoint que ya tenías, ¡no necesitas cambiar el backend!
+      const saveResponse = await fetch("/api/user/avatar", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatar: avatarUrl }),
+        credentials: "include"
+      });
+
+      if (!saveResponse.ok) {
+        console.error("Error al guardar el avatar en la base de datos.");
+        // Aquí podrías mostrar una notificación de error al usuario
+      } else {
+        console.log("Avatar guardado en la base de datos exitosamente.");
+        // Actualizamos el estado local para que la UI refleje el cambio al instante
+        setUser((prev: any) => ({ ...prev, avatar: avatarUrl }));
+        // Cerramos el modal
+        setIsAvatarModalOpen(false);
+      }
+    } catch (error) {
+      console.error("Falló la petición para guardar el avatar:", error);
+    }
+  };
+
   const loadingSteps = [
     { id: "perfil", label: "Preparando tu perfil...", status: (loading ? "loading" : "completed") as "loading" | "completed" },
   ];
+
   // Checklist y progreso reales
   const profileChecklist = voluntario ? [
     { label: "Foto de perfil", completed: !!user?.avatar, link: "/perfil" },
@@ -180,12 +229,15 @@ export default function PerfilVoluntario() {
     { label: "Verificación de email", completed: user?.verified, link: "/configuracion" },
     { label: "Experiencia", completed: voluntario.experience && voluntario.experience.length > 0, link: "/perfil" },
   ] : [];
+
   const completedCount = profileChecklist.filter(i => i.completed).length;
   const completion = profileChecklist.length > 0 ? Math.round((completedCount / profileChecklist.length) * 100) : 0;
+
   // Formulario de edición
   const handleEditChange = (field: string, value: any) => {
     setEditData((prev: any) => ({ ...prev, [field]: value }));
   };
+
   const handleSave = async () => {
     setSaving(true);
     await fetch("/api/perfil/voluntario", {
@@ -201,6 +253,7 @@ export default function PerfilVoluntario() {
     setEditMode(false);
     setSaving(false);
   };
+
   return (
     <AdaptiveLoading isLoading={loading} type="dashboard" loadingSteps={loadingSteps}>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 w-full">
@@ -283,6 +336,7 @@ export default function PerfilVoluntario() {
                   <FileDown className="h-4 w-4" /> PDF
                 </button>
               </div>
+              
               {/* Avatar grande con botón editar, elevado */}
               <div className="relative flex-shrink-0" style={{ marginTop: '-5.5rem' }}>
                 <div className="h-32 w-32 md:h-36 md:w-36 rounded-full bg-gray-200 border-8 border-white shadow-2xl flex items-center justify-center text-6xl text-blue-600 font-bold overflow-hidden transition-shadow duration-200">
@@ -293,15 +347,14 @@ export default function PerfilVoluntario() {
                   )}
                 </div>
                 <button
-                  className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 shadow transition"
-                  title="Editar foto de perfil"
-                  type="button"
-                  style={{ cursor: 'not-allowed', opacity: 0.5 }}
-                  disabled
-                >
-                  <Edit className="h-5 w-5" />
-                </button>
-              </div>
+                    className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 shadow transition"
+                    title="Editar foto de perfil"
+                    type="button"
+                    onClick={() => setIsAvatarModalOpen(true)} // MODIFICADO
+                  >
+                    <Edit className="h-5 w-5" />
+                  </button>
+                </div>
               {/* Info principal compacta y tagline */}
               <div className="flex-1 flex flex-col gap-1 min-w-0 pl-2 mb-8 mt-8">
                 <div className="flex items-center gap-3 flex-wrap">
@@ -600,6 +653,15 @@ export default function PerfilVoluntario() {
             setSaving(false);
           }}
         />
+
+        <AvatarSelectionModal
+            open={isAvatarModalOpen}
+            onClose={() => setIsAvatarModalOpen(false)}
+            onSave={handleSaveAvatar}
+            avatars={AVATARS}
+            currentAvatar={user?.avatar}
+        />
+
         {/* Botón para abrir el modal */}
         <div className="max-w-2xl mx-auto my-4 flex justify-end">
           <button className="bg-blue-600 text-white px-4 py-2 rounded-lg" onClick={() => setEditMode(true)}>Editar perfil</button>
@@ -607,4 +669,4 @@ export default function PerfilVoluntario() {
       </div>
     </AdaptiveLoading>
   )
-} 
+}

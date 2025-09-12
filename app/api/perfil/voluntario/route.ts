@@ -1,23 +1,50 @@
+// Archivo: app/api/perfil/voluntario/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/app/auth/actions";
 import { PrismaClient } from "@prisma/client";
 
+export const dynamic = 'force-dynamic';
+
 const prisma = new PrismaClient();
 
+// ==================================================================
+// FUNCIÓN GET CORREGIDA
+// ==================================================================
 export async function GET(req: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) {
+  const sessionUser = await getCurrentUser();
+  if (!sessionUser?.id) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
-  const voluntario = await prisma.volunteer.findUnique({
-    where: { userId: user.id },
-  });
-  if (!voluntario) {
-    return NextResponse.json({ error: "Perfil de voluntario no encontrado" }, { status: 404 });
+
+  try {
+    // Hacemos UNA SOLA consulta a la BD que incluye los datos del usuario.
+    const volunteerProfile = await prisma.volunteer.findUnique({
+      where: { userId: sessionUser.id },
+      include: {
+        user: true, // ¡Esta es la clave! Trae los datos frescos del usuario.
+      },
+    });
+
+    if (!volunteerProfile) {
+      return NextResponse.json({ error: "Perfil de voluntario no encontrado" }, { status: 404 });
+    }
+
+    // Separamos los datos del usuario (actualizados) y los del perfil del voluntario.
+    const { user, ...voluntarioData } = volunteerProfile;
+
+    // Enviamos ambos objetos al frontend con la información 100% actualizada.
+    return NextResponse.json({ user, voluntario: voluntarioData });
+
+  } catch (error) {
+    console.error("Error al obtener el perfil del voluntario:", error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
-  return NextResponse.json({ user, voluntario });
 }
 
+// ==================================================================
+// TU FUNCIÓN PUT SE QUEDA IGUAL (NO NECESITA CAMBIOS)
+// ==================================================================
 export async function PUT(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
@@ -75,4 +102,4 @@ export async function PUT(req: NextRequest) {
     console.error('Error actualizando voluntario:', error);
     return NextResponse.json({ error: error.message || 'Error interno' }, { status: 500 });
   }
-} 
+}
