@@ -230,7 +230,7 @@ export default function PerfilVoluntario() {
 
   // Checklist y progreso reales
   const profileChecklist = voluntario ? [
-    { label: "Foto de perfil", completed: !!user?.avatar, link: "/perfil" },
+    { label: "Avatar de perfil", completed: !!user?.avatar, link: "/perfil" },
     { label: "Biografía", completed: !!voluntario.bio, link: "/perfil" },
     { label: "Intereses", completed: voluntario.interests && voluntario.interests.length > 0, link: "/perfil" },
     { label: "Habilidades", completed: voluntario.skills && voluntario.skills.length > 0, link: "/perfil" },

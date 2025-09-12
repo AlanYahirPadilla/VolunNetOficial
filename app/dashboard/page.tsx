@@ -1295,7 +1295,7 @@ function UserMenu({ user }: { user: any }) {
       {open && (
         <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fade-in">
           <div className="px-4 py-3 border-b border-gray-100">
-            <div className="font-semibold text-gray-800 text-sm">{user?.firstName || 'María'} {user?.lastName || 'González'}</div>
+            <div className="font-semibold text-gray-800 text-sm">{user?.firstName || 'María'}</div>
             <div className="text-xs text-gray-500">{user?.email || 'voluntario@volunnet.com'}</div>
           </div>
           <Link
