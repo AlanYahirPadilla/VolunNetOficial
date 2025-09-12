@@ -635,9 +635,6 @@ const handleEventClick = async (event: Event) => {
               whileHover={{ scale: 1.025, boxShadow: "0 8px 32px 0 rgba(80, 112, 255, 0.10)" }}
             >
               <div className="relative mb-3">
-                {/* ========================================================== */}
-                {/* ================ AQUÍ ESTÁ LA CORRECCIÓN =============== */}
-                {/* ========================================================== */}
                 <div className="h-24 w-24 rounded-full bg-gradient-to-tr from-blue-100 to-purple-100 border-4 border-white shadow-lg flex items-center justify-center text-4xl text-blue-500 font-bold overflow-hidden">
                   {user?.avatar ? (
                     <img 
@@ -649,8 +646,6 @@ const handleEventClick = async (event: Event) => {
                     user?.firstName?.[0] || 'M'
                   )}
                 </div>
-                {/* ========================================================== */}
-                {/* ========================================================== */}
                 <span className="absolute -bottom-2 right-0 bg-yellow-400 text-white text-xs px-2 py-0.5 rounded-full shadow font-semibold border-2 border-white">★ Oro</span>
               </div>
               <div className="text-lg font-bold text-gray-900 text-center">{user?.firstName || 'María'} {user?.lastName || 'González'}</div>
