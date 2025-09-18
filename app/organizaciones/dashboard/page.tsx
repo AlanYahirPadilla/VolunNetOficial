@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, Suspense } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Heart, Home, Calendar, Users, Bell, LogOut, User, Settings, PlusCircle, CheckCircle, Star } from "lucide-react"
@@ -144,6 +144,18 @@ function UserMenu({ organizationName, organizationEmail }: { organizationName: s
 }
 
 export default function OrganizadorDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <OrganizadorDashboardContent />
+    </Suspense>
+  )
+}
+
+function OrganizadorDashboardContent() {
   const [tab, setTab] = useState("mis-eventos")
   const [organizationName, setOrganizationName] = useState(mockOrganization.name)
   const [organizationEmail, setOrganizationEmail] = useState("")
