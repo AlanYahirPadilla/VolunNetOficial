@@ -1,40 +1,30 @@
-import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Preview,
-  Text,
-} from "@react-email/components";
 import * as React from "react";
 
 interface VerificationEmailProps {
   verificationCode?: string;
 }
 
-export const VerificationEmail = ({ verificationCode }: VerificationEmailProps) => (
-  <Html>
-    <Head />
-    <Preview>Tu código de verificación de VolunNet</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Heading style={heading}>Verifica tu dirección de correo</Heading>
-        <Text style={paragraph}>
-          Gracias por unirte a VolunNet. Para completar tu registro, por favor usa el siguiente código de verificación:
-        </Text>
-        <Text style={codeStyle}>{verificationCode}</Text>
-        <Text style={paragraph}>
-          Este código expirará en 10 minutos. Si no solicitaste esta verificación, puedes ignorar este correo.
-        </Text>
-        <Button style={button} href="https://tu-sitio-web.com/configuracion">
-          Ir a tu configuración
-        </Button>
-      </Container>
-    </Body>
-  </Html>
-);
+export const VerificationEmail = ({ verificationCode }: VerificationEmailProps) => {
+  return React.createElement('html', null,
+    React.createElement('head', null),
+    React.createElement('body', { style: main },
+      React.createElement('div', { style: container },
+        React.createElement('h1', { style: heading }, 'Verifica tu dirección de correo'),
+        React.createElement('p', { style: paragraph },
+          'Gracias por unirte a VolunNet. Para completar tu registro, por favor usa el siguiente código de verificación:'
+        ),
+        React.createElement('p', { style: codeStyle }, verificationCode),
+        React.createElement('p', { style: paragraph },
+          'Este código expirará en 10 minutos. Si no solicitaste esta verificación, puedes ignorar este correo.'
+        ),
+        React.createElement('a', { 
+          style: button, 
+          href: "https://tu-sitio-web.com/configuracion" 
+        }, 'Ir a tu configuración')
+      )
+    )
+  );
+};
 
 export default VerificationEmail;
 
