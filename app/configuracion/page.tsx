@@ -24,6 +24,9 @@ import { motion } from "framer-motion"
 import { getCurrentUser } from "@/app/auth/actions"
 import { VerificationModal } from "@/components/ui/verification-modal"
 
+// Forzar que esta página sea dinámica
+export const dynamic = 'force-dynamic'
+
 // --- Datos del Modal de Edición Integrados ---
 const GENDERS = ["Masculino", "Femenino", "Otro", "Prefiero no decirlo"];
 const SKILLS = [

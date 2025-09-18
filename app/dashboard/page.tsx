@@ -21,6 +21,9 @@ import { Button } from "@/components/ui/button"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { ApplicationStatusBadge } from "@/components/ui/application-status-badge"
 
+// Forzar que esta página sea dinámica
+export const dynamic = 'force-dynamic'
+
 interface Event {
   id: string
   title: string

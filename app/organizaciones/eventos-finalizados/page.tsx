@@ -27,6 +27,9 @@ import {
 import Link from "next/link";
 import { getCurrentUser } from "@/app/auth/actions";
 
+// Forzar que esta página sea dinámica
+export const dynamic = 'force-dynamic'
+
 interface CompletedEvent {
   id: string;
   title: string;

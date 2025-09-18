@@ -13,6 +13,9 @@ import { useFormState, useFormStatus } from "react-dom"
 import { loginAction, getCurrentUser } from "../auth/actions"
 import { useRouter } from "next/navigation"
 
+// Forzar que esta página sea dinámica
+export const dynamic = 'force-dynamic'
+
 // Componente para el botón de envío con estado de carga
 function SubmitButton() {
   const { pending } = useFormStatus()

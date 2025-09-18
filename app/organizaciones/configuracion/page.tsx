@@ -5,6 +5,9 @@ import { Settings } from "lucide-react"
 import { getCurrentUser } from "@/app/auth/actions"
 import Link from "next/link"
 
+// Forzar que esta página sea dinámica
+export const dynamic = 'force-dynamic'
+
 export default function ConfiguracionOrganizacion() {
   const [organizationName, setOrganizationName] = useState("Organización")
   const [organizationEmail, setOrganizationEmail] = useState("")

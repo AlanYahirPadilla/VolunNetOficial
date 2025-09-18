@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Home, Bell, Users, Calendar, Heart, LogOut, User, Settings, Info, AlertTriangle, CheckCircle, Clock, BellRing } from "lucide-react";
 import Link from "next/link";
 
+// Forzar que esta página sea dinámica
+export const dynamic = 'force-dynamic'
+
 interface Notification {
   id: number;
   title: string;

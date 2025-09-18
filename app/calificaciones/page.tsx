@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { getCurrentUser } from "../auth/actions"
+
+// Forzar que esta página sea dinámica
+export const dynamic = 'force-dynamic'
 import { RatingModal } from "@/components/RatingModal/RatingModal"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

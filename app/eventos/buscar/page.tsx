@@ -17,6 +17,9 @@ import { getCurrentUser } from "@/app/auth/actions"
 import Link from "next/link"
 import { ApplicationStatusBadge } from "@/components/ui/application-status-badge"
 
+// Forzar que esta página sea dinámica
+export const dynamic = 'force-dynamic'
+
 // Funciones auxiliares
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("es-ES", {
