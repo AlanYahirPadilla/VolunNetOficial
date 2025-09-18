@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/app/auth/actions'
 import { RatingService } from '@/lib/services/RatingService'
 
+// Forzar que esta ruta sea dinámica
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     // Obtener usuario autenticado

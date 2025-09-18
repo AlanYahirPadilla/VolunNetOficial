@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/app/auth/actions";
 import { PrismaClient } from "@prisma/client";
 
+// Forzar que esta ruta sea dinámica
+export const dynamic = 'force-dynamic'
+
 const prisma = new PrismaClient();
 
 // GET /api/perfil/organizador

@@ -3,6 +3,9 @@ import { neon } from "@neondatabase/serverless";
 import { getCurrentUser } from "@/app/auth/actions";
 import { Resend } from 'resend'; // Importa Resend
 
+// Forzar que esta ruta sea dinámica
+export const dynamic = 'force-dynamic'
+
 const sql = neon(process.env.DATABASE_URL!);
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null; // Inicializa Resend
 

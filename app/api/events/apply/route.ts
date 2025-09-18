@@ -3,6 +3,9 @@ import { getCurrentUser } from "@/app/auth/actions"
 import { prisma } from "@/lib/prisma"
 import { NotificationService } from "@/lib/services/NotificationService"
 
+// Forzar que esta ruta sea dinámica
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser()

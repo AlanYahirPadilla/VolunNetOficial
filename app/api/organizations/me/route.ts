@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 import { getCurrentUser } from "@/app/auth/actions"
 
+// Forzar que esta ruta sea dinámica
+export const dynamic = 'force-dynamic'
+
 const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET(request: NextRequest) {

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/app/auth/actions'
 import { prisma } from '@/lib/prisma'
 
+// Forzar que esta ruta sea dinámica
+export const dynamic = 'force-dynamic'
+
 export async function PUT(request: NextRequest) {
   try {
     // Obtener usuario autenticado

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/app/auth/actions'
 import { NotificationService } from '@/lib/services/NotificationService'
 
+// Forzar que esta ruta sea dinámica
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     // Obtener usuario autenticado
