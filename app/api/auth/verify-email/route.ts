@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { getCurrentUser } from "@/app/auth/actions";
 import { Resend } from 'resend'; // Importa Resend
-import { VerificationEmail } from '@/components/emails/VerificationEmail'; // Importa tu plantilla
 
 const sql = neon(process.env.DATABASE_URL!);
 const resend = new Resend(process.env.RESEND_API_KEY); // Inicializa Resend
@@ -41,7 +40,27 @@ export async function POST(request: NextRequest) {
           to: email, 
           
           subject: 'Tu código de verificación para VolunNet',
-          react: VerificationEmail({ verificationCode: verificationCode }),
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h1 style="color: #333; text-align: center;">Verifica tu dirección de correo</h1>
+              <p style="color: #555; text-align: center;">
+                Gracias por unirte a VolunNet. Para completar tu registro, por favor usa el siguiente código de verificación:
+              </p>
+              <div style="text-align: center; margin: 30px 0;">
+                <span style="font-size: 32px; font-weight: bold; color: #1e88e5; letter-spacing: 4px; background: #f0f8ff; padding: 20px; border-radius: 8px; display: inline-block;">
+                  ${verificationCode}
+                </span>
+              </div>
+              <p style="color: #555; text-align: center;">
+                Este código expirará en 10 minutos. Si no solicitaste esta verificación, puedes ignorar este correo.
+              </p>
+              <div style="text-align: center; margin-top: 30px;">
+                <a href="https://tu-sitio-web.com/configuracion" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                  Ir a tu configuración
+                </a>
+              </div>
+            </div>
+          `,
         });
 
         console.log(`Correo de verificación enviado a ${email}`);
