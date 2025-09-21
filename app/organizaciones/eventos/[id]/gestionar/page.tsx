@@ -132,7 +132,7 @@ export default function EventoGestionarPage() {
   }
 
   const handleManageApplications = () => {
-  router.push(`/organizaciones/eventos/${eventId}/gestionar`)
+  router.push(`/organizaciones/eventos/${params.id}/postulaciones`)
 }
 
   if (loading) {

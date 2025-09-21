@@ -21,9 +21,6 @@ import { Button } from "@/components/ui/button"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { ApplicationStatusBadge } from "@/components/ui/application-status-badge"
 
-// Forzar que esta página sea dinámica
-export const dynamic = 'force-dynamic'
-
 interface Event {
   id: string
   title: string
@@ -107,25 +104,31 @@ export default function Dashboard() {
     setLoadingSteps((prev) => prev.map((step) => (step.id === stepId ? { ...step, status } : step)))
   }, [])
 
-  const loadMyEvents = useCallback(async () => {
-    try {
-      console.log("🔄 Cargando mis eventos...")
-      const response = await safeFetch("/api/events/apply", { 
-        credentials: "include",
-        signal: abortController.current?.signal
-      }, 8000)
+ const loadMyEvents = useCallback(async () => {
+  try {
+    console.log("🔄 Cargando MIS EVENTOS (solo aceptados)...")
+    const response = await safeFetch("/api/events/apply", { 
+      credentials: "include",
+      signal: abortController.current?.signal
+    }, 8000)
+    
+    if (response.ok) {
+      const data = await response.json()
+      console.log("📋 DATOS PARA MIS EVENTOS:", JSON.stringify(data, null, 2))
       
-      if (response.ok) {
-        const data = await response.json()
-        console.log("📋 Respuesta de la API:", data)
+      if (data.applications && data.applications.length > 0) {
+        const acceptedApplications = data.applications.filter((app: any) => {
+          const isAccepted = app.status === 'ACCEPTED'
+          console.log(`📋 MIS EVENTOS - App: ${app.event?.title} | Status: ${app.status} | Incluir: ${isAccepted}`)
+          return isAccepted
+        })
         
-        if (data.applications && data.applications.length > 0) {
-          console.log("📋 Aplicaciones encontradas:", data.applications.length)
-          
-          // Crear eventos directamente desde las aplicaciones con datos reales
-          const eventsFromApplications = data.applications.map((app: any) => {
-            // Formatear la fecha correctamente
-            const eventDate = new Date(app.event_start_date)
+        console.log(`✅ APLICACIONES ACEPTADAS ENCONTRADAS: ${acceptedApplications.length}`)
+        
+        if (acceptedApplications.length > 0) {
+          const acceptedEvents = acceptedApplications.map((app: any) => {
+            // CORRECCIÓN: Usar app.event.* en lugar de app.event_*
+            const eventDate = new Date(app.event?.startDate || new Date())
             const formattedDate = eventDate.toLocaleDateString("es-ES", {
               day: "numeric",
               month: "short",
@@ -134,46 +137,41 @@ export default function Dashboard() {
             })
             
             return {
-              id: app.eventId,
-              title: app.event_title || "Evento sin título",
+              id: app.event?.id || 'unknown',
+              title: app.event?.title || "Evento sin título",
               description: "Descripción del evento",
-              organization_name: app.organization_name || "Organización no especificada",
-              city: "Guadalajara",
+              organization_name: app.event?.organization?.name || "Organización no especificada",
+              city: "Guadalajara", // Por defecto hasta tener más datos
               state: "Jalisco",
-              start_date: app.event_start_date || new Date().toISOString(),
+              start_date: app.event?.startDate || new Date().toISOString(),
+              end_date: app.event?.endDate || new Date().toISOString(),
               max_volunteers: 10,
               current_volunteers: 5,
               category_name: "Sin categoría",
               skills: [],
-              applicationStatus: app.status,
+              applicationStatus: app.status, // Será 'ACCEPTED'
               applicationId: app.id,
-              // Datos adicionales para mostrar
               formattedDate: formattedDate
             }
           })
           
-          console.log("📋 Eventos creados:", eventsFromApplications)
-          console.log("📋 Estados de aplicación:", eventsFromApplications.map(e => ({ title: e.title, status: e.applicationStatus })))
-          
-          console.log("✅ Eventos creados desde aplicaciones:", eventsFromApplications)
-          safeStateUpdate(setMyEvents, eventsFromApplications)
+          console.log("🎯 EVENTOS PARA 'MIS EVENTOS':", acceptedEvents.map(e => e.title))
+          safeStateUpdate(setMyEvents, acceptedEvents)
         } else {
-          console.log("📋 No hay aplicaciones")
+          console.log("📋 No hay eventos aceptados para mostrar")
           safeStateUpdate(setMyEvents, [])
         }
       } else {
-        console.error("❌ Error en la respuesta:", response.status)
+        console.log("📋 No hay aplicaciones")
         safeStateUpdate(setMyEvents, [])
       }
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log("🔄 Carga de eventos cancelada")
-        return
-      }
-      logError("Error loading my events", error)
-      safeStateUpdate(setMyEvents, [])
     }
-  }, [])
+  } catch (error) {
+    console.error("Error loading accepted events:", error)
+    safeStateUpdate(setMyEvents, [])
+  }
+}, [])
+
 
   // Separate data loading functions to prevent race conditions
   const loadUserData = useCallback(async () => {
@@ -239,127 +237,103 @@ export default function Dashboard() {
     }
   }, [updateLoadingStep])
 
-  const loadEventsData = useCallback(async () => {
+  // DEBUGGING: Agrega estos console.log para entender qué está pasando
+
+const loadEventsData = useCallback(async () => {
+  try {
+    updateLoadingStep("events", "loading")
+    console.log("🔄 Iniciando carga de eventos disponibles...")
+    
+    // Primero obtenemos los eventos aceptados del usuario
+    let acceptedEventIds: string[] = []
     try {
-      updateLoadingStep("events", "loading")
-      console.log("🔄 Iniciando carga de eventos desde API...")
-      
-      const eventsAbortController = new AbortController()
-      const timeoutId = setTimeout(() => {
-        console.log("⏰ Timeout de 30 segundos alcanzado, cancelando petición de eventos")
-        eventsAbortController.abort()
-      }, 30000)
-      
-      try {
-        const response = await fetch('/api/eventos?limit=10', {
-          signal: eventsAbortController.signal
-        })
+      const acceptedResponse = await fetch('/api/events/apply', {
+        credentials: 'include'
+      })
+      if (acceptedResponse.ok) {
+        const acceptedData = await acceptedResponse.json()
         
-        clearTimeout(timeoutId)
-        console.log("📡 Respuesta de la API:", response.status, response.statusText)
-        
-        if (!response.ok) {
-          throw new Error(`API responded with status: ${response.status}`)
-        }
-        
-        const data = await response.json()
-        console.log("📊 Datos de eventos recibidos:", data)
-        
-        if (data.events && Array.isArray(data.events)) {
-          console.log("✅ Eventos encontrados:", data.events.length)
-          const realEvents = data.events.map((e: any) => ({
-            id: e.id,
-            title: e.title,
-            description: e.description,
-            organization_name: e.organization_name,
-            city: e.city,
-            state: e.state,
-            start_date: e.startDate || e.start_date,
-            end_date: e.endDate || e.end_date,
-            max_volunteers: e.maxVolunteers || e.max_volunteers || 10,
-            current_volunteers: e.currentVolunteers || e.current_volunteers || 0,
-            category_name: e.category_name,
-            skills: e.skills || [],
-            requirements: e.requirements || [],
-            benefits: e.benefits || [],
-            status: e.status,
-            imageUrl: e.imageUrl,
-            hasApplied: false,
-            applicationStatus: undefined,
-          }))
-          
-          console.log("🎯 Eventos procesados:", realEvents)
-          
-          const eventsWithApplicationStatus = await Promise.all(
-            realEvents.map(async (event) => {
-              try {
-                const checkResponse = await fetch(`/api/events/apply?eventId=${event.id}`)
-                if (checkResponse.ok) {
-                  const checkData = await checkResponse.json()
-                  return {
-                    ...event,
-                    hasApplied: checkData.hasApplied,
-                    applicationStatus: checkData.application?.status
-                  }
-                }
-              } catch (error) {
-                console.warn(`Error checking application status for event ${event.id}:`, error)
-              }
-              return event
+        if (acceptedData.applications) {
+          acceptedEventIds = acceptedData.applications
+            .filter((app: any) => {
+              const isAccepted = app.status === 'ACCEPTED'
+              console.log(`📋 App: ${app.event?.title} | Status: ${app.status} | Es Aceptado: ${isAccepted}`)
+              return isAccepted
             })
-          )
+            .map((app: any) => {
+              // CORRECCIÓN: Usar app.event.id en lugar de app.eventId
+              const eventId = app.event?.id
+              console.log(`✅ EVENTO ACEPTADO ID: ${eventId} | Título: ${app.event?.title}`)
+              return eventId
+            })
+            .filter(id => id !== undefined) // Filtrar IDs undefined
           
-          safeStateUpdate(setEvents, eventsWithApplicationStatus)
-        } else {
-          console.log("⚠️ No se encontraron eventos reales, usando eventos de ejemplo")
-          const sampleEvents = [
-            { id: "sample-1", title: "Limpieza de Playa Vallarta", description: "Actividad de limpieza en la playa principal de Puerto Vallarta", organization_name: "EcoMar Jalisco", city: "Puerto Vallarta", state: "Jalisco", start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 20, current_volunteers: 8, category_name: "Medio Ambiente", skills: ["Trabajo en equipo", "Resistencia física"]},
-            { id: "sample-2", title: "Taller de Programación para Niños", description: "Enseñanza básica de programación a niños de primaria", organization_name: "CodeForAll", city: "Guadalajara", state: "Jalisco", start_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 10, current_volunteers: 3, category_name: "Educación", skills: ["Programación", "Paciencia", "Comunicación"]},
-            { id: "sample-3", title: "Donación de Alimentos", description: "Recolección y distribución de alimentos para familias necesitadas", organization_name: "Banco de Alimentos GDL", city: "Zapopan", state: "Jalisco", start_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 15, current_volunteers: 12, category_name: "Asistencia Social", skills: ["Organización", "Trabajo en equipo"]},
-          ]
-          safeStateUpdate(setEvents, sampleEvents)
+          console.log("🚫 IDs de eventos donde fue ACEPTADO:", acceptedEventIds)
         }
-        
-        updateLoadingStep("events", "completed")
-      } catch (fetchError) {
-        clearTimeout(timeoutId)
-        throw fetchError
       }
-    } catch (eventsError) {
-      if (eventsError instanceof Error && eventsError.name === 'AbortError') {
-        console.log("🔄 Carga de eventos cancelada por timeout")
-        const timeoutEvents = [
-          { id: "timeout-1", title: "Limpieza de Playa Vallarta", description: "Actividad de limpieza en la playa principal de Puerto Vallarta", organization_name: "EcoMar Jalisco", city: "Puerto Vallarta", state: "Jalisco", start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 20, current_volunteers: 8, category_name: "Medio Ambiente", skills: ["Trabajo en equipo", "Resistencia física"]},
-          { id: "timeout-2", title: "Taller de Programación para Niños", description: "Enseñanza básica de programación a niños de primaria", organization_name: "CodeForAll", city: "Guadalajara", state: "Jalisco", start_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 10, current_volunteers: 3, category_name: "Educación", skills: ["Programación", "Paciencia", "Comunicación"]},
-        ]
-        safeStateUpdate(setEvents, timeoutEvents)
-        updateLoadingStep("events", "completed")
-        
-        try {
-          const completedResult = await getRecentCompletedEvents()
-          if (completedResult.events) {
-            setCompletedEvents(completedResult.events)
-            console.log(`✅ Cargados ${completedResult.events.length} eventos completados`)
-          }
-        } catch (error) {
-          console.warn("Error cargando eventos completados:", error)
-        }
-        
-        return
-      }
-      
-      console.error("❌ Error cargando eventos:", eventsError)
-      updateLoadingStep("events", "error")
-      
-      console.log("🔄 Mostrando eventos de ejemplo debido al error")
-      const fallbackEvents = [
-        { id: "fallback-1", title: "Limpieza de Playa Vallarta", description: "Actividad de limpieza en la playa principal de Puerto Vallarta", organization_name: "EcoMar Jalisco", city: "Puerto Vallarta", state: "Jalisco", start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 20, current_volunteers: 8, category_name: "Medio Ambiente", skills: ["Trabajo en equipo", "Resistencia física"]},
-        { id: "fallback-2", title: "Taller de Programación para Niños", description: "Enseñanza básica de programación a niños de primaria", organization_name: "CodeForAll", city: "Guadalajara", state: "Jalisco", start_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 10, current_volunteers: 3, category_name: "Educación", skills: ["Programación", "Paciencia", "Comunicación"]},
-        { id: "fallback-3", title: "Donación de Alimentos", description: "Recolección y distribución de alimentos para familias necesitadas", organization_name: "Banco de Alimentos GDL", city: "Zapopan", state: "Jalisco", start_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), max_volunteers: 15, current_volunteers: 12, category_name: "Asistencia Social", skills: ["Organización", "Trabajo en equipo"]},
-      ]
-      safeStateUpdate(setEvents, fallbackEvents)
+    } catch (error) {
+      console.warn("Error obteniendo eventos aceptados:", error)
     }
-  }, [updateLoadingStep])
+    
+    // Obtener todos los eventos publicados
+    const response = await fetch('/api/eventos?limit=10')
+    
+    if (!response.ok) {
+      throw new Error(`API responded with status: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    
+    if (data.events && Array.isArray(data.events)) {
+      console.log(`✅ Total eventos encontrados: ${data.events.length}`)
+      
+      // MOSTRAR CADA EVENTO Y SU DECISIÓN DE FILTRADO
+      data.events.forEach((event: any) => {
+        const shouldBeExcluded = acceptedEventIds.includes(event.id)
+        console.log(`🎯 EVENTO: "${event.title}" | ID: ${event.id} | ¿Excluir?: ${shouldBeExcluded}`)
+      })
+      
+      // FILTRAR eventos donde NO ha sido aceptado
+      const availableEvents = data.events.filter((e: any) => {
+        const isAccepted = acceptedEventIds.includes(e.id)
+        if (isAccepted) {
+          console.log(`🚫 EXCLUYENDO "${e.title}" porque fue aceptado`)
+        } else {
+          console.log(`✅ INCLUYENDO "${e.title}" en eventos disponibles`)
+        }
+        return !isAccepted
+      })
+      
+      console.log(`🎯 Eventos que pasaron el filtro: ${availableEvents.length}`)
+      console.log("📝 Títulos de eventos disponibles:", availableEvents.map(e => e.title))
+      
+      const processedEvents = availableEvents.map((e: any) => ({
+        id: e.id,
+        title: e.title,
+        description: e.description,
+        organization_name: e.organization_name,
+        city: e.city,
+        state: e.state,
+        start_date: e.startDate || e.start_date,
+        end_date: e.endDate || e.end_date,
+        max_volunteers: e.maxVolunteers || e.max_volunteers || 10,
+        current_volunteers: e.currentVolunteers || e.current_volunteers || 0,
+        category_name: e.category_name,
+        skills: e.skills || [],
+        hasApplied: false,
+        applicationStatus: undefined,
+      }))
+      
+      console.log("🎯 EVENTOS FINALES PARA 'DISPONIBLES':", processedEvents.map(e => e.title))
+      safeStateUpdate(setEvents, processedEvents)
+      
+      updateLoadingStep("events", "completed")
+    }
+  } catch (eventsError) {
+    console.error("❌ Error cargando eventos:", eventsError)
+    updateLoadingStep("events", "error")
+  }
+}, [updateLoadingStep])
 
   const loadNotificationsData = useCallback(async () => {
     try {
@@ -391,50 +365,51 @@ export default function Dashboard() {
   }, [updateLoadingStep])
 
   useEffect(() => {
-    if (isInitialized.current) {
-      return
-    }
-    isInitialized.current = true
-    async function loadData() {
-      const startTime = Date.now()
-      console.log("🚀 Iniciando carga optimizada del dashboard...")
+  if (isInitialized.current) {
+    return
+  }
+  isInitialized.current = true
+  async function loadData() {
+    const startTime = Date.now()
+    console.log("🚀 Iniciando carga optimizada del dashboard...")
 
-      try {
-        await loadUserData()
-        await loadMyEvents()
-        await Promise.allSettled([
-          loadStatsData(),
-          loadEventsData(),
-          loadNotificationsData(),
-        ])
-        const totalTime = Date.now() - startTime
-        console.log(`✅ Carga completa del dashboard en ${totalTime}ms`)
-      } catch (error) {
-        console.error("Error general en carga de datos:", error)
-        setError("Error cargando el dashboard. Por favor, recarga la página.")
-setLoadingSteps((prev: LoadingStep[]) =>
-          prev.map((step: LoadingStep) =>
-            step.status === "loading" || step.status === "pending" ? { ...step, status: "error" } : step,
-          ),
-        )
-      } finally {
-        const minLoadingTime = 800
-        const elapsed = Date.now() - startTime
-        const remainingTime = Math.max(0, minLoadingTime - elapsed)
+    try {
+      await loadUserData()
+      await loadMyEvents() // Cargar eventos aceptados primero
+      await Promise.allSettled([
+        loadStatsData(),
+        loadEventsData(), // Luego cargar eventos disponibles (excluirá los aceptados)
+        loadNotificationsData(),
+      ])
+      const totalTime = Date.now() - startTime
+      console.log(`✅ Carga completa del dashboard en ${totalTime}ms`)
+    } catch (error) {
+      console.error("Error general en carga de datos:", error)
+      setError("Error cargando el dashboard. Por favor, recarga la página.")
+      setLoadingSteps((prev) =>
+        prev.map((step) =>
+          step.status === "loading" || step.status === "pending" ? { ...step, status: "error" } : step,
+        ),
+      )
+    } finally {
+      const minLoadingTime = 800
+      const elapsed = Date.now() - startTime
+      const remainingTime = Math.max(0, minLoadingTime - elapsed)
 
-        setTimeout(() => {
-          setLoading(false)
-        }, remainingTime)
-      }
+      setTimeout(() => {
+        setLoading(false)
+      }, remainingTime)
     }
+  }
 
-    loadData()
-    return () => {
-      if (abortController.current) {
-        abortController.current.abort()
-      }
+  loadData()
+  return () => {
+    if (abortController.current) {
+      abortController.current.abort()
     }
-  }, [loadUserData, loadMyEvents, loadStatsData, loadEventsData, loadNotificationsData])
+  }
+}, [loadUserData, loadMyEvents, loadStatsData, loadEventsData, loadNotificationsData])
+
 
   const sidebarStats = {
     completedEvents: stats?.completed_events || 5,
@@ -487,58 +462,66 @@ const handleEventClick = async (event: Event) => {
     }
   }
 
+  const refreshEventsAfterApplication = useCallback(async () => {
+  console.log("🔄 Refrescando eventos después de aplicación...")
+  await loadMyEvents() // Recargar eventos aceptados
+  await loadEventsData() // Recargar eventos disponibles (excluirá el nuevo aceptado)
+}, [loadMyEvents, loadEventsData])
+
   const confirmApplication = async () => {
-    if (!selectedEvent) return
+  if (!selectedEvent) return
 
-    setApplicationStatus('applying')
-    setModalMessage('Enviando postulación...')
+  setApplicationStatus('applying')
+  setModalMessage('Enviando postulación...')
 
-    try {
-      const response = await fetch("/api/events/apply", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ eventId: selectedEvent.id }),
-      })
+  try {
+    const response = await fetch("/api/events/apply", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ eventId: selectedEvent.id }),
+    })
 
-      if (response.ok) {
-        setEvents(prev => prev.map(e => 
-          e.id === selectedEvent.id 
-            ? { 
-                ...e, 
-                current_volunteers: e.current_volunteers + 1,
-                hasApplied: true,
-                applicationStatus: 'PENDING'
-              }
-            : e
-        ))
-        
-        setApplicationStatus('success')
-        setModalMessage('¡Postulación enviada exitosamente!')
-        
-        setTimeout(() => {
-          setShowApplicationModal(false)
-          setSelectedEvent(null)
-          setApplicationStatus('checking')
-          setModalMessage('')
-        }, 2000)
+    if (response.ok) {
+      setEvents(prev => prev.map(e => 
+        e.id === selectedEvent.id 
+          ? { 
+              ...e, 
+              current_volunteers: e.current_volunteers + 1,
+              hasApplied: true,
+              applicationStatus: 'PENDING'
+            }
+          : e
+      ))
+      
+      setApplicationStatus('success')
+      setModalMessage('¡Postulación enviada exitosamente!')
+      
+      // Refrescar eventos después de 2 segundos
+      setTimeout(async () => {
+        setShowApplicationModal(false)
+        setSelectedEvent(null)
+        setApplicationStatus('checking')
+        setModalMessage('')
+        await refreshEventsAfterApplication()
+      }, 2000)
+    } else {
+      const errorData = await response.json()
+      if (response.status === 400 && errorData.error === "Ya te has postulado a este evento") {
+        setApplicationStatus('already-applied')
+        setModalMessage('Ya te has postulado a este evento anteriormente')
       } else {
-        const errorData = await response.json()
-        if (response.status === 400 && errorData.error === "Ya te has postulado a este evento") {
-          setApplicationStatus('already-applied')
-          setModalMessage('Ya te has postulado a este evento anteriormente')
-        } else {
-          setApplicationStatus('error')
-          setModalMessage(errorData.error || "Error al postularse al evento")
-        }
+        setApplicationStatus('error')
+        setModalMessage(errorData.error || "Error al postularse al evento")
       }
-    } catch (error) {
-      console.error("Error applying to event:", error)
-      setApplicationStatus('error')
-      setModalMessage('Error al postularse al evento')
     }
+  } catch (error) {
+    console.error("Error applying to event:", error)
+    setApplicationStatus('error')
+    setModalMessage('Error al postularse al evento')
   }
+}
 
   const closeModal = () => {
     setShowApplicationModal(false)
@@ -823,7 +806,7 @@ const handleEventClick = async (event: Event) => {
       <Calendar className="h-6 w-6 text-blue-600" />
       Mis Eventos Inscritos
     </h3>
-    <Button 
+   {/* <Button 
       onClick={loadMyEvents}
       variant="outline"
       size="sm"
@@ -831,7 +814,7 @@ const handleEventClick = async (event: Event) => {
     >
       <Calendar className="h-4 w-4" />
       Actualizar
-    </Button>
+    </Button>*/}
   </div>
 
   <div className="space-y-6">

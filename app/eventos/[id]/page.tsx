@@ -229,7 +229,8 @@ export default function EventDetails() {
   }
 
   const isEventFull = event.currentVolunteers >= event.maxVolunteers
-  const isEventPast = new Date(event.startDate) < new Date()
+  //const isEventPast = new Date(event.startDate) < new Date()
+  const isEventPast = new Date(event.endDate) < new Date()
   const isVolunteer = user?.role === "VOLUNTEER"
 
   return (

@@ -17,9 +17,6 @@ import { getCurrentUser } from "@/app/auth/actions"
 import Link from "next/link"
 import { ApplicationStatusBadge } from "@/components/ui/application-status-badge"
 
-// Forzar que esta página sea dinámica
-export const dynamic = 'force-dynamic'
-
 // Funciones auxiliares
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("es-ES", {
@@ -133,70 +130,70 @@ export default function EventSearchPage() {
   }
 
   const fetchEvents = async () => {
-    try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      if (filters.query) params.append("query", filters.query)
-      if (filters.city) params.append("city", filters.city)
-      if (filters.state) params.append("state", filters.state)
-      if (filters.category) params.append("category", filters.category)
-      params.append("limit", "50")
-      params.append("upcomingOnly", "true")
+  try {
+    setLoading(true)
+    const params = new URLSearchParams()
+    if (filters.query) params.append("query", filters.query)
+    if (filters.city) params.append("city", filters.city)
+    if (filters.state) params.append("state", filters.state)
+    if (filters.category && filters.category !== "all") params.append("category", filters.category)
+    // 👆 Quitamos limit y upcomingOnly para traer TODOS los publicados
 
-      const response = await fetch(`/api/eventos?${params.toString()}`)
-      if (response.ok) {
-        let data = await response.json()
-        
-        if (!Array.isArray(data)) {
-          if (data && typeof data === 'object' && data.events && Array.isArray(data.events)) {
-            data = data.events
-          } else if (data && typeof data === 'object' && data.data && Array.isArray(data.data)) {
-            data = data.data
-          } else {
-            setEvents([])
-            return
-          }
+    const response = await fetch(`/api/eventos?${params.toString()}`)
+    if (response.ok) {
+      let data = await response.json()
+
+      if (!Array.isArray(data)) {
+        if (data && typeof data === 'object' && data.events && Array.isArray(data.events)) {
+          data = data.events
+        } else if (data && typeof data === 'object' && data.data && Array.isArray(data.data)) {
+          data = data.data
+        } else {
+          setEvents([])
+          return
         }
-
-        if (filters.onlyVerified) data = data.filter((event: Event) => event.organization_verified)
-        if (filters.onlyAvailable) data = data.filter((event: Event) => event.currentVolunteers < event.maxVolunteers)
-        if (filters.category && filters.category !== "all") data = data.filter((event: Event) => event.category_name === filters.category)
-        if (filters.skills.length > 0) data = data.filter((event: Event) => filters.skills.some(skill => event.skills.includes(skill)))
-
-        data.sort((a: Event, b: Event) => {
-          switch (sortBy) {
-            case "date": return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-            case "volunteers": return b.currentVolunteers - a.currentVolunteers
-            case "title": return a.title.localeCompare(b.title)
-            default: return 0
-          }
-        })
-
-        const eventsWithApplicationStatus = await Promise.all(
-          data.map(async (event: Event) => {
-            try {
-              const checkResponse = await fetch(`/api/events/apply?eventId=${event.id}`)
-              if (checkResponse.ok) {
-                const checkData = await checkResponse.json()
-                return {
-                  ...event,
-                  hasApplied: checkData.hasApplied,
-                  applicationStatus: checkData.application?.status
-                }
-              }
-            } catch (error) {}
-            return event
-          })
-        )
-        
-        setEvents(eventsWithApplicationStatus)
       }
-    } catch (error) {
-      console.error("Error fetching events:", error)
-    } finally {
-      setLoading(false)
+
+      if (filters.onlyVerified) data = data.filter((event: Event) => event.organization_verified)
+      if (filters.onlyAvailable) data = data.filter((event: Event) => event.currentVolunteers < event.maxVolunteers)
+      if (filters.skills.length > 0) data = data.filter((event: Event) => filters.skills.some(skill => event.skills.includes(skill)))
+
+      // ordenamiento
+      data.sort((a: Event, b: Event) => {
+        switch (sortBy) {
+          case "date": return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+          case "volunteers": return b.currentVolunteers - a.currentVolunteers
+          case "title": return a.title.localeCompare(b.title)
+          default: return 0
+        }
+      })
+
+      // verificar si ya aplicó el usuario
+      const eventsWithApplicationStatus = await Promise.all(
+        data.map(async (event: Event) => {
+          try {
+            const checkResponse = await fetch(`/api/events/apply?eventId=${event.id}`)
+            if (checkResponse.ok) {
+              const checkData = await checkResponse.json()
+              return {
+                ...event,
+                hasApplied: checkData.hasApplied,
+                applicationStatus: checkData.application?.status
+              }
+            }
+          } catch (error) {}
+          return event
+        })
+      )
+      
+      setEvents(eventsWithApplicationStatus)
     }
+  } catch (error) {
+    console.error("Error fetching events:", error)
+  } finally {
+    setLoading(false)
   }
+}
 
   const handleApply = async (event: Event) => {
     if (!user) {

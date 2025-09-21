@@ -80,7 +80,7 @@ const AVAILABLE_SKILLS = [
   "Programación", "Diseño gráfico", "Comunicación", "Liderazgo", "Enseñanza",
   "Logística", "Fotografía", "Marketing", "Atención al cliente", "Redacción",
   "Música", "Arte", "Deportes", "Cocina", "Jardinería", "Construcción",
-  "Mecánica", "Electricidad", "Plomería", "Carpintería"
+  "Mecánica", "Electricidad", "Plomería", "Carpintería", "Ninguna en especial"
 ]
 
 const STEPS = [

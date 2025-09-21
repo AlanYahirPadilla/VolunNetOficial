@@ -32,10 +32,10 @@ const mockOrganizer = {
 
 const AVATARS = [
   '/avatars/avatarO1.png',
-  '/avatars/avatarO2.JPG',
-  '/avatars/avatarO3.JPG',
-  '/avatars/avatarO4.JPG',
-  '/avatars/avatarO5.JPG',
+  '/avatars/avatarO2.png',
+  '/avatars/avatarO3.png',
+  '/avatars/avatarO4.png',
+  '/avatars/avatarO5.png',
   /*'/avatars/avatar6.png',
   '/avatars/avatar7.png',
   '/avatars/avatar8.png',
