@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 import { getCurrentUser } from "@/app/auth/actions"
 
-// Forzar que esta ruta sea dinámica
-export const dynamic = 'force-dynamic'
-
 const sql = neon(process.env.DATABASE_URL!)
 
 // Categorías predefinidas
@@ -18,6 +15,7 @@ const EVENT_CATEGORIES = [
   { id: "cat_7", name: "Arte y Cultura", description: "Expresión artística", icon: "🎨", color: "bg-pink-100 text-pink-700" },
   { id: "cat_8", name: "Construcción", description: "Proyectos comunitarios", icon: "🔨", color: "bg-gray-100 text-gray-700" },
 ]
+
 
 // Función para asegurar que las categorías existan
 async function ensureCategories() {
