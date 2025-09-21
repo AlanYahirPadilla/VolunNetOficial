@@ -1,9 +1,7 @@
+// /api/perfil/organizador
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/app/auth/actions";
 import { PrismaClient } from "@prisma/client";
-
-// Forzar que esta ruta sea dinámica
-export const dynamic = 'force-dynamic'
 
 const prisma = new PrismaClient();
 
@@ -15,8 +13,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Buscar la organización y el usuario asociados de forma conjunta
     const organization = await prisma.organization.findUnique({
       where: { userId: user.id },
+      include: { user: true }, // Incluir los datos de la tabla 'User'
     });
 
     if (!organization) {
@@ -26,12 +26,12 @@ export async function GET(req: NextRequest) {
     const organizadorForFrontend = {
       id: organization.id,
       userId: organization.userId,
-      nombre: organization.name, 
-      descripcion: organization.description, 
-      categoria: organization.category, 
-      sitioWeb: organization.website, 
-      emailContacto: organization.contactEmail, 
-      telefonoContacto: organization.contactPhone, 
+      nombre: organization.name,
+      descripcion: organization.description,
+      categoria: organization.category,
+      sitioWeb: organization.website,
+      emailContacto: organization.contactEmail,
+      telefonoContacto: organization.contactPhone,
       ciudadEstadoPais: [organization.city, organization.state, organization.country]
         .filter(Boolean)
         .join(', ') || null,
@@ -43,14 +43,15 @@ export async function GET(req: NextRequest) {
       verificado: organization.verified,
       eventosCreados: organization.eventsCreated,
       voluntariosAyudados: organization.volunteersHelped,
-      preferenciasVoluntario: organization.preferences, 
+      preferenciasVoluntario: organization.preferences,
       rating: organization.rating,
       tagline: organization.tagline,
       createdAt: organization.createdAt,
       updatedAt: organization.updatedAt,
     };
 
-    return NextResponse.json({ user, organizador: organizadorForFrontend });
+    // Devolver el usuario más actualizado de la base de datos, no el del token
+    return NextResponse.json({ user: organization.user, organizador: organizadorForFrontend });
   } catch (error: any) {
     console.error('Error al obtener perfil de organizador:', error);
     return NextResponse.json({ error: error.message || 'Error interno del servidor' }, { status: 500 });
@@ -66,7 +67,6 @@ export async function PUT(req: NextRequest) {
 
   const data = await req.json();
 
-  
   let socialLinks: string[] = [];
   if (Array.isArray(data.socialLinks)) {
     if (data.socialLinks.length > 0 && typeof data.socialLinks[0] === 'object' && data.socialLinks[0] !== null) {
@@ -117,13 +117,13 @@ export async function PUT(req: NextRequest) {
     const updatedOrganization = await prisma.organization.update({
       where: { userId: user.id },
       data: {
-        name: data.name, 
-        description: data.description, 
-        website: data.website, 
-        category: data.category, 
-        contactEmail: data.contactEmail, 
-        contactPhone: data.contactPhone, 
-        address: data.address, 
+        name: data.name,
+        description: data.description,
+        website: data.website,
+        category: data.category,
+        contactEmail: data.contactEmail,
+        contactPhone: data.contactPhone,
+        address: data.address,
         city: data.city,
         state: data.state,
         country: data.country,

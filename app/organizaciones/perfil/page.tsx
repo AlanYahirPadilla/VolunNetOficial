@@ -8,6 +8,7 @@ import { AdaptiveLoading } from "@/components/ui/adaptive-loading"
 import ProfileCompletionCard from "@/components/registro/profile-completion-card"
 import ProfileEditModal from "@/components/registro/profile-edit-modal-organizacion"; 
 import { FaFacebook, FaInstagram, FaTwitter } from "react-icons/fa";
+import AvatarSelectionModal from "@/components/registro/avatar-selection-modal";
 
 
 const mockOrganizer = {
@@ -29,6 +30,20 @@ const mockOrganizer = {
   rating: 4.9, 
 };
 
+const AVATARS = [
+  '/avatars/avatarO1.png',
+  '/avatars/avatarO2.JPG',
+  '/avatars/avatarO3.JPG',
+  '/avatars/avatarO4.JPG',
+  '/avatars/avatarO5.JPG',
+  /*'/avatars/avatar6.png',
+  '/avatars/avatar7.png',
+  '/avatars/avatar8.png',
+  '/avatars/avatar9.png',
+  '/avatars/avatar10.png',
+  '/avatars/avatar11.png',*/
+];
+
 // Catálogo de categorías/intereses (reused or adapted)
 const CATEGORIAS = [
   { id: "ONG", nombre: "ONG" },
@@ -49,12 +64,21 @@ function UserMenu({ user }: { user: any }) {
         onClick={() => setOpen((v) => !v)}
         aria-label="Abrir menú de usuario"
       >
-        {user?.firstName?.[0] || 'O'} {}
+        {user?.avatar ? (
+          <img 
+            src={user.avatar} 
+            alt="Avatar" 
+            className="w-full h-full object-cover" 
+          />
+        ) : (
+          // Si NO tiene avatar, muestra la inicial como antes
+          user?.firstName?.[0] || 'Y'
+        )}
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fade-in">
           <div className="px-4 py-3 border-b border-gray-100">
-            <div className="font-semibold text-gray-800 text-sm">{user?.name || 'Organizador'}</div>
+            <div className="font-semibold text-gray-800 text-sm">{user?.firstName || 'Organizador'}</div>
             <div className="text-xs text-gray-500">{user?.email || 'organizador@ejemplo.com'}</div>
           </div>
           <Link href="/perfil-organizador" className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"><User className="h-4 w-4 text-gray-500" />Perfil</Link>
@@ -92,8 +116,10 @@ export default function PerfilOrganizador() {
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+
   useEffect(() => {
-    fetch("/api/perfil/organizador", { credentials: "include" })
+    fetch("/api/perfil/organizador", { credentials: "include", cache:'no-store'})
       .then(res => {
         if (res.status === 401) {
           router.push("/"); 
@@ -114,9 +140,30 @@ export default function PerfilOrganizador() {
     { id: "perfil", label: "Preparando perfil de organizador...", status: (loading ? "loading" : "completed") as "loading" | "completed" },
   ];
 
+  const handleSaveAvatar = async (avatarUrl: string) => {
+  if (!avatarUrl) return;
+  try {
+    const saveResponse = await fetch("/api/user/avatar", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ avatar: avatarUrl }),
+      credentials: "include"
+    });
+
+    if (saveResponse.ok) {
+      setUser((prev: any) => ({ ...prev, avatar: avatarUrl }));
+      setIsAvatarModalOpen(false);
+    } else {
+      console.error("Error al guardar avatar de la organización.");
+    }
+  } catch (error) {
+    console.error("Falló la petición para guardar el avatar:", error);
+  }
+};
+
 
   const profileChecklist = organizador ? [
-    { label: "Foto de perfil", completed: !!user?.avatar, link: "/perfil-organizador" },
+    { label: "Avatar de perfil", completed: !!user?.avatar, link: "/perfil-organizador" },
     { label: "Nombre de la organización", completed: !!organizador.nombre, link: "/perfil-organizador" },
     { label: "Descripción", completed: !!organizador.descripcion, link: "/perfil-organizador" },
     { label: "Categoría", completed: !!organizador.categoria, link: "/perfil-organizador" },
@@ -214,13 +261,13 @@ export default function PerfilOrganizador() {
                 >
                   <Share2 className="h-4 w-4" /> Compartir
                 </button>
-                <button
+                {/*<button
                   className="flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 text-white text-xs font-semibold shadow hover:from-blue-500 hover:to-purple-600 transition-all"
                   title="Descargar perfil en PDF"
                   onClick={() => window.alert("Próximamente podrás descargar el perfil de tu organización en PDF")}
                 >
                   <FileDown className="h-4 w-4" /> PDF
-                </button>
+                </button>*/}
               </div>
 
               {/* Avatar grande con botón editar */}
@@ -236,8 +283,7 @@ export default function PerfilOrganizador() {
                   className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 shadow transition"
                   title="Editar logo de organización"
                   type="button"
-                  style={{ cursor: 'not-allowed', opacity: 0.5 }}
-                  disabled
+                  onClick={() => setIsAvatarModalOpen(true)}
                 >
                   <Edit className="h-5 w-5" />
                 </button>
@@ -462,6 +508,14 @@ export default function PerfilOrganizador() {
             setEditMode(false);
             setSaving(false);
           }}
+        />
+
+        <AvatarSelectionModal
+          open={isAvatarModalOpen}
+          onClose={() => setIsAvatarModalOpen(false)}
+          onSave={handleSaveAvatar}
+          avatars={AVATARS}
+          currentAvatar={user?.avatar}
         />
 
         <div className="max-w-2xl mx-auto my-4 flex justify-end">
