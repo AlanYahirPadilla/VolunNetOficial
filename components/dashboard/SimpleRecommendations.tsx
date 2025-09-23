@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import Link from 'next/link'
 
 // =================== TIPOS ===================
 
@@ -361,8 +362,9 @@ export function SimpleRecommendations({
                       variant="outline"
                       size="sm"
                       className="flex-1"
+                      asChild
                     >
-                      Ver detalles
+                      <Link href={`/eventos/${event.id}`}>Ver detalles</Link>
                     </Button>
                     
                     <Button

@@ -726,7 +726,60 @@ const handleEventClick = async (event: Event) => {
                 />
               </TabsContent>
 
-<TabsContent value="disponibles">
+              {/* Utilidades visuales para placeholders por categoría */}
+              {(() => {
+                const normalize = (text?: string) => (text || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
+                const getCategoryGradient = (name?: string) => {
+                  const n = normalize(name)
+                  if (n.includes('ambiente') || n.includes('ecologia') || n.includes('naturaleza')) return { from: '#E6F4EA', to: '#D1F1DC' }
+                  if (n.includes('tecnolog')) return { from: '#E8EEFF', to: '#EDE6FF' }
+                  if (n.includes('salud')) return { from: '#FFE8EC', to: '#FFEDEF' }
+                  if (n.includes('educacion')) return { from: '#FFF5E6', to: '#FFEFD6' }
+                  if (n.includes('comunidad') || n.includes('social')) return { from: '#E6F0FF', to: '#E6FFF7' }
+                  if (n.includes('arte') || n.includes('cultura')) return { from: '#FFE9F2', to: '#FFE6F5' }
+                  if (n.includes('alimentacion') || n.includes('nutricion')) return { from: '#FFF4E5', to: '#FFE9CC' }
+                  if (n.includes('deporte')) return { from: '#FFF9E6', to: '#FFF1B8' }
+                  if (n.includes('construccion')) return { from: '#F2F4F7', to: '#E9EEF5' }
+                  if (n.includes('animal')) return { from: '#F0FAE6', to: '#E6F7D6' }
+                  return { from: '#EAF0FF', to: '#F2E9FF' }
+                }
+                const getIconForCategory = (name?: string) => {
+                  const n = normalize(name)
+                  if (n.includes('ambiente') || n.includes('ecologia') || n.includes('naturaleza')) return '🌱'
+                  if (n.includes('tecnolog')) return '💻'
+                  if (n.includes('salud')) return '❤️'
+                  if (n.includes('educacion')) return '🎓'
+                  if (n.includes('comunidad') || n.includes('social')) return '👥'
+                  if (n.includes('arte') || n.includes('cultura')) return '🎨'
+                  if (n.includes('alimentacion') || n.includes('nutricion')) return '🍽️'
+                  if (n.includes('deporte')) return '🏆'
+                  if (n.includes('construccion')) return '🔨'
+                  if (n.includes('animal')) return '🐾'
+                  return '📅'
+                }
+                const EmojiMosaicBackground = ({ icon }: { icon: string }) => {
+                  const items = Array.from({ length: 40 })
+                  const rng = (seed: number) => { let x = Math.sin(seed) * 10000; return x - Math.floor(x) }
+                  return (
+                    <div className="absolute inset-0 overflow-hidden">
+                      {items.map((_, i) => {
+                        const r1 = rng(i + 1), r2 = rng((i + 1) * 2), r3 = rng((i + 1) * 3)
+                        const size = 18 + Math.floor(r1 * 46)
+                        const left = Math.floor(r2 * 100)
+                        const top = Math.floor(r3 * 100)
+                        const opacity = 0.05 + r1 * 0.15
+                        const rotate = Math.floor((r2 - 0.5) * 30)
+                        return (
+                          <span key={i} className="absolute select-none" style={{ left: `${left}%`, top: `${top}%`, fontSize: `${size}px`, opacity, transform: `translate(-50%, -50%) rotate(${rotate}deg)` }}>{icon}</span>
+                        )
+                      })}
+                    </div>
+                  )
+                }
+                return null
+              })()}
+
+              <TabsContent value="disponibles">
   <div className="grid md:grid-cols-2 gap-6">
     {events.map((event, idx) => (
       <motion.div
@@ -737,12 +790,53 @@ const handleEventClick = async (event: Event) => {
         whileHover={{ scale: 1.02 }}
         className="bg-white border border-gray-100 rounded-3xl shadow-md hover:shadow-xl transition-all overflow-hidden flex flex-col"
       >
-        <div className="relative h-40 bg-gradient-to-r from-blue-100 to-purple-100 flex items-center justify-center">
-          <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-medium bg-blue-600 text-white shadow">
-            {event.category_name}
-          </span>
-          <Calendar className="h-12 w-12 text-blue-500 opacity-70" />
-        </div>
+                  {(() => { const g = (function(){
+                      const t = (text?: string) => (text || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
+                      const n = t(event.category_name)
+                      if (n.includes('ambiente') || n.includes('ecologia') || n.includes('naturaleza')) return { from: '#E6F4EA', to: '#D1F1DC' }
+                      if (n.includes('tecnolog')) return { from: '#E8EEFF', to: '#EDE6FF' }
+                      if (n.includes('salud')) return { from: '#FFE8EC', to: '#FFEDEF' }
+                      if (n.includes('educacion')) return { from: '#FFF5E6', to: '#FFEFD6' }
+                      if (n.includes('comunidad') || n.includes('social')) return { from: '#E6F0FF', to: '#E6FFF7' }
+                      if (n.includes('arte') || n.includes('cultura')) return { from: '#FFE9F2', to: '#FFE6F5' }
+                      if (n.includes('alimentacion') || n.includes('nutricion')) return { from: '#FFF4E5', to: '#FFE9CC' }
+                      if (n.includes('deporte')) return { from: '#FFF9E6', to: '#FFF1B8' }
+                      if (n.includes('construccion')) return { from: '#F2F4F7', to: '#E9EEF5' }
+                      if (n.includes('animal')) return { from: '#F0FAE6', to: '#E6F7D6' }
+                      return { from: '#EAF0FF', to: '#F2E9FF' }
+                    })();
+                    const icon = (function(){
+                      const n = (event.category_name || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
+                      if (n.includes('ambiente') || n.includes('ecologia') || n.includes('naturaleza')) return '🌱'
+                      if (n.includes('tecnolog')) return '💻'
+                      if (n.includes('salud')) return '❤️'
+                      if (n.includes('educacion')) return '🎓'
+                      if (n.includes('comunidad') || n.includes('social')) return '👥'
+                      if (n.includes('arte') || n.includes('cultura')) return '🎨'
+                      if (n.includes('alimentacion') || n.includes('nutricion')) return '🍽️'
+                      if (n.includes('deporte')) return '🏆'
+                      if (n.includes('construccion')) return '🔨'
+                      if (n.includes('animal')) return '🐾'
+                      return '📅'
+                    })();
+                    return (
+                      <div className="relative h-40 flex items-center justify-center" style={{ background: `linear-gradient(90deg, ${g.from}, ${g.to})` }}>
+                        <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-medium bg-blue-600 text-white shadow">
+                          {event.category_name}
+                        </span>
+                        <div className="absolute inset-0"><span style={{display:'none'}}></span></div>
+                        <div className="absolute inset-0"><span style={{display:'none'}}></span></div>
+                        <div className="absolute inset-0"><span style={{display:'none'}}></span></div>
+                        {/* Mosaico */}
+                        <div className="absolute inset-0 overflow-hidden">
+                          {Array.from({length:36}).map((_,i)=>{ const r=(s:number)=>{let x=Math.sin(s)*10000;return x-Math.floor(x)}; const r1=r(i+1), r2=r((i+1)*2), r3=r((i+1)*3); const size=16+Math.floor(r1*44); const left=Math.floor(r2*100); const top=Math.floor(r3*100); const opacity=0.05 + r1*0.15; const rotate=Math.floor((r2-0.5)*30); return (
+                            <span key={i} className="absolute select-none" style={{left:`${left}%`, top:`${top}%`, fontSize:`${size}px`, opacity, transform:`translate(-50%, -50%) rotate(${rotate}deg)`}}>{icon}</span>
+                          )})}
+                        </div>
+                        {/* Ícono central */}
+                        <div className="relative text-6xl">{icon}</div>
+                      </div>
+                    )})()}
 
         <div className="flex-1 p-6 flex flex-col justify-between">
           <div>
@@ -860,9 +954,18 @@ const handleEventClick = async (event: Event) => {
           transition={{ delay: idx * 0.1 }}
           className="bg-white border border-gray-100 rounded-3xl shadow-md hover:shadow-xl transition-all p-6 flex flex-col sm:flex-row gap-6"
         >
-          <div className="flex-shrink-0 w-full sm:w-40 h-32 sm:h-auto bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center">
-            <Calendar className="h-12 w-12 text-blue-500" />
-          </div>
+          {(() => { const t=(s?:string)=>(s||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,''); const n=t(event.category_name as any); const gradient= n.includes('ambiente')||n.includes('ecologia')||n.includes('naturaleza')?{from:'#E6F4EA',to:'#D1F1DC'}: n.includes('tecnolog')?{from:'#E8EEFF',to:'#EDE6FF'}: n.includes('salud')?{from:'#FFE8EC',to:'#FFEDEF'}: n.includes('educacion')?{from:'#FFF5E6',to:'#FFEFD6'}: n.includes('comunidad')||n.includes('social')?{from:'#E6F0FF',to:'#E6FFF7'}: n.includes('arte')||n.includes('cultura')?{from:'#FFE9F2',to:'#FFE6F5'}: n.includes('alimentacion')||n.includes('nutricion')?{from:'#FFF4E5',to:'#FFE9CC'}: n.includes('deporte')?{from:'#FFF9E6',to:'#FFF1B8'}: n.includes('construccion')?{from:'#F2F4F7',to:'#E9EEF5'}: n.includes('animal')?{from:'#F0FAE6',to:'#E6F7D6'}:{from:'#EAF0FF',to:'#F2E9FF'}; const icon = n.includes('ambiente')||n.includes('ecologia')||n.includes('naturaleza')?'🌱': n.includes('tecnolog')?'💻': n.includes('salud')?'❤️': n.includes('educacion')?'🎓': n.includes('comunidad')||n.includes('social')?'👥': n.includes('arte')||n.includes('cultura')?'🎨': n.includes('alimentacion')||n.includes('nutricion')?'🍽️': n.includes('deporte')?'🏆': n.includes('construccion')?'🔨': n.includes('animal')?'🐾':'📅'; return (
+            <div className="flex-shrink-0 w-full sm:w-40 h-32 sm:h-auto rounded-2xl relative overflow-hidden" style={{background:`linear-gradient(135deg, ${gradient.from}, ${gradient.to})`}}>
+              <div className="absolute inset-0 overflow-hidden">
+                {Array.from({length:28}).map((_,i)=>{ const r=(s:number)=>{let x=Math.sin(s)*10000;return x-Math.floor(x)}; const r1=r(i+1), r2=r((i+1)*2), r3=r((i+1)*3); const size=14+Math.floor(r1*36); const left=Math.floor(r2*100); const top=Math.floor(r3*100); const opacity=0.06+r1*0.14; const rotate=Math.floor((r2-0.5)*30); return (
+                  <span key={i} className="absolute select-none" style={{left:`${left}%`, top:`${top}%`, fontSize:`${size}px`, opacity, transform:`translate(-50%, -50%) rotate(${rotate}deg)`}}>{icon}</span>
+                )})}
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-5xl">{icon}</div>
+              </div>
+            </div>
+          )})()}
 
           <div className="flex-1 flex flex-col justify-between">
             <div>

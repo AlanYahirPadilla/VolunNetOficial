@@ -50,6 +50,90 @@ interface Organization {
   totalEvents?: number
 }
 
+// Fondo de mosaico de emojis/iconos para el hero cuando no hay imagen
+function EmojiMosaicBackground({ icon }: { icon: string }) {
+  const items = Array.from({ length: 48 })
+  // Genera posiciones y tamaños deterministas para evitar parpadeo en re-render
+  const seededRandom = (seed: number) => {
+    // LCG simple
+    let x = Math.sin(seed) * 10000
+    return x - Math.floor(x)
+  }
+
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {items.map((_, i) => {
+        const r1 = seededRandom(i + 1)
+        const r2 = seededRandom((i + 1) * 2)
+        const r3 = seededRandom((i + 1) * 3)
+        const size = 20 + Math.floor(r1 * 60) // 20–80px
+        const left = Math.floor(r2 * 100)
+        const top = Math.floor(r3 * 100)
+        const opacity = 0.06 + r1 * 0.16 // 0.06–0.22
+        const rotate = Math.floor((r2 - 0.5) * 30) // -15–15deg
+        return (
+          <span
+            key={i}
+            className="absolute select-none"
+            style={{
+              left: `${left}%`,
+              top: `${top}%`,
+              fontSize: `${size}px`,
+              opacity,
+              transform: `translate(-50%, -50%) rotate(${rotate}deg)`
+            }}
+          >
+            {icon}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+// Gradientes suaves por categoría
+function normalize(text?: string): string {
+  return (text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+}
+
+function getCategoryGradient(categoryName?: string): { from: string; to: string } {
+  const name = normalize(categoryName)
+  if (name.includes('ambiente') || name.includes('ecologia') || name.includes('naturaleza')) {
+    return { from: '#E6F4EA', to: '#D1F1DC' } // verdes pastel
+  }
+  if (name.includes('tecnolog')) {
+    return { from: '#E8EEFF', to: '#EDE6FF' } // azul/lila pastel
+  }
+  if (name.includes('salud')) {
+    return { from: '#FFE8EC', to: '#FFEDEF' } // rosas suaves
+  }
+  if (name.includes('educacion')) {
+    return { from: '#FFF5E6', to: '#FFEFD6' } // naranja pastel
+  }
+  if (name.includes('comunidad') || name.includes('social')) {
+    return { from: '#E6F0FF', to: '#E6FFF7' } // azul a menta
+  }
+  if (name.includes('arte') || name.includes('cultura')) {
+    return { from: '#FFE9F2', to: '#FFE6F5' } // rosa/lila pastel para Arte y Cultura
+  }
+  if (name.includes('alimentacion') || name.includes('alimento') || name.includes('nutricion')) {
+    return { from: '#FFF4E5', to: '#FFE9CC' } // naranja durazno
+  }
+  if (name.includes('deporte')) {
+    return { from: '#FFF9E6', to: '#FFF1B8' } // amarillo suave
+  }
+  if (name.includes('construccion') || name.includes('obra') || name.includes('infraestructura')) {
+    return { from: '#F2F4F7', to: '#E9EEF5' } // grises/azules muy suaves
+  }
+  if (name.includes('animal')) {
+    return { from: '#F0FAE6', to: '#E6F7D6' } // verde lima pastel
+  }
+  return { from: '#EAF0FF', to: '#F2E9FF' } // predeterminado azul-lila
+}
+
 export default function EventDetails() {
   const params = useParams()
   const router = useRouter()
@@ -303,12 +387,29 @@ export default function EventDetails() {
       {/* HERO */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="relative rounded-2xl shadow-xl overflow-hidden border border-blue-50 mb-8">
-        <div className="h-72 w-full bg-gradient-to-r from-blue-100 to-purple-100 relative">
+        {(() => {
+          const gradient = getCategoryGradient(event.category_name)
+          return (
+            <div
+              className="h-72 w-full relative"
+              style={{
+                background: `linear-gradient(90deg, ${gradient.from}, ${gradient.to})`
+              }}
+            >
           {event.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={event.imageUrl} alt={event.title} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex items-center justify-center text-6xl">{event.category_icon}</div>
+            <>
+              {/* Mosaico tenue de emojis/iconos */}
+              <EmojiMosaicBackground icon={event.category_icon} />
+              {/* Ícono principal al centro */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-7xl drop-shadow-sm">
+                  {event.category_icon}
+                </div>
+              </div>
+            </>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
           <div className="absolute bottom-6 left-8 text-white">
@@ -317,7 +418,9 @@ export default function EventDetails() {
               <Badge className={`${event.category_color} text-sm`}>{event.category_name}</Badge>
             </div>
           </div>
-        </div>
+            </div>
+          )
+        })()}
         <div className="absolute top-4 right-4 flex gap-2">
           <Button variant="outline" size="sm" className="bg-white/80 hover:bg-white">
             <Share2 className="h-4 w-4 mr-2" /> Compartir

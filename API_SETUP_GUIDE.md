@@ -130,3 +130,4 @@ Si tienes problemas con la configuración:
 1. Revisa los logs en la consola del navegador
 2. Visita `/api/debug/ai-status` para ver el estado de las APIs
 3. Verifica que las claves sean válidas en las plataformas respectivas
+

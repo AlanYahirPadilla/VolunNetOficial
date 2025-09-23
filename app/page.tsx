@@ -490,13 +490,13 @@ export default function HomePage() {
                 links: [
                   { name: "Eventos", href: "/eventos" },
                   { name: "Organizaciones", href: "/organizaciones" },
-                  { name: "Voluntarios", href: "/voluntarios" },
+                  { name: "Voluntarios", href: "/volun" },
                 ],
               },
               {
                 title: "Soporte",
                 links: [
-                  { name: "Centro de Ayuda", href: "/ayuda" },
+                  { name: "Centro de Ayuda", href: "/centrodeayuda" },
                   { name: "Contacto", href: "/contacto" },
                   { name: "Términos", href: "/terminos" },
                 ],

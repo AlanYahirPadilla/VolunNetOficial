@@ -487,9 +487,58 @@ export default function EventSearchPage() {
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-            <Calendar className="h-16 w-16 text-gray-400" />
-          </div>
+          (() => {
+            const normalize = (t?: string) => (t || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
+            const name = normalize(event.category_name)
+            const gradient = name.includes('ambiente') || name.includes('ecologia') || name.includes('naturaleza')
+              ? { from: '#E6F4EA', to: '#D1F1DC' }
+              : name.includes('tecnolog')
+              ? { from: '#E8EEFF', to: '#EDE6FF' }
+              : name.includes('salud')
+              ? { from: '#FFE8EC', to: '#FFEDEF' }
+              : name.includes('educacion')
+              ? { from: '#FFF5E6', to: '#FFEFD6' }
+              : name.includes('comunidad') || name.includes('social')
+              ? { from: '#E6F0FF', to: '#E6FFF7' }
+              : name.includes('arte') || name.includes('cultura')
+              ? { from: '#FFE9F2', to: '#FFE6F5' }
+              : name.includes('alimentacion') || name.includes('nutricion')
+              ? { from: '#FFF4E5', to: '#FFE9CC' }
+              : name.includes('deporte')
+              ? { from: '#FFF9E6', to: '#FFF1B8' }
+              : name.includes('construccion')
+              ? { from: '#F2F4F7', to: '#E9EEF5' }
+              : name.includes('animal')
+              ? { from: '#F0FAE6', to: '#E6F7D6' }
+              : { from: '#EAF0FF', to: '#F2E9FF' }
+
+            const icon = name.includes('ambiente') || name.includes('ecologia') || name.includes('naturaleza') ? '🌱'
+              : name.includes('tecnolog') ? '💻'
+              : name.includes('salud') ? '❤️'
+              : name.includes('educacion') ? '🎓'
+              : name.includes('comunidad') || name.includes('social') ? '👥'
+              : name.includes('arte') || name.includes('cultura') ? '🎨'
+              : name.includes('alimentacion') || name.includes('nutricion') ? '🍽️'
+              : name.includes('deporte') ? '🏆'
+              : name.includes('construccion') ? '🔨'
+              : name.includes('animal') ? '🐾' : '📅'
+
+            return (
+              <div className="w-full h-full relative overflow-hidden rounded-t-3xl"
+                   style={{ background: `linear-gradient(90deg, ${gradient.from}, ${gradient.to})` }}>
+                {/* Mosaico */}
+                <div className="absolute inset-0 overflow-hidden">
+                  {Array.from({length:36}).map((_,i)=>{ const r=(s:number)=>{let x=Math.sin(s)*10000;return x-Math.floor(x)}; const r1=r(i+1), r2=r((i+1)*2), r3=r((i+1)*3); const size=16+Math.floor(r1*44); const left=Math.floor(r2*100); const top=Math.floor(r3*100); const opacity=0.05 + r1*0.15; const rotate=Math.floor((r2-0.5)*30); return (
+                    <span key={i} className="absolute select-none" style={{left:`${left}%`, top:`${top}%`, fontSize:`${size}px`, opacity, transform:`translate(-50%, -50%) rotate(${rotate}deg)`}}>{icon}</span>
+                  )})}
+                </div>
+                {/* Ícono central */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-6xl">{icon}</div>
+                </div>
+              </div>
+            )
+          })()
         )}
 
         {/* Badges flotantes */}

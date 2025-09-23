@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { SimpleAIRecommendation } from '@/lib/services/SimpleAIService'
+import Link from 'next/link'
 
 interface AIEnhancedRecommendationsProps {
   className?: string
@@ -506,8 +507,10 @@ export function AIEnhancedRecommendations({
                 </div>
 
                 <div className="flex justify-end mt-4">
-                  <Button size="sm">
-                    Ver Detalles
+                  <Button size="sm" asChild>
+                    <Link href={`/eventos/${recommendation.eventId}`}>
+                      Ver detalles
+                    </Link>
                   </Button>
                 </div>
               </CardContent>
