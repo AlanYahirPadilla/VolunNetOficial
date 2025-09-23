@@ -251,6 +251,7 @@ export async function GET(request: NextRequest) {
           e."updatedAt",
           o.name as organization_name,
           o.verified as organization_verified,
+          e."categoryId",
           ec.name as category_name,
           ec.icon as category_icon,
           ec.color as category_color
@@ -310,6 +311,7 @@ export async function GET(request: NextRequest) {
           e."updatedAt",
           o.name as organization_name,
           o.verified as organization_verified,
+          e."categoryId",
           ec.name as category_name,
           ec.icon as category_icon,
           ec.color as category_color
