@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
-const sql = neon(process.env.DATABASE_URL!)
+// Evitar inicializar conexión durante build si no hay credenciales
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const connectionString = process.env.DATABASE_URL
+    if (!connectionString) {
+      return NextResponse.json({
+        error: "DATABASE_URL no configurado",
+        hint: "Define DATABASE_URL en variables de entorno del proyecto (Vercel)"
+      }, { status: 500 })
+    }
+
+    const sql = neon(connectionString)
     console.log("=== DEBUG: Checking database state ===")
     
     // Verificar si la tabla events existe y tiene datos
