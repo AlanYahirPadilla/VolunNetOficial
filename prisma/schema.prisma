@@ -37,10 +37,18 @@ model User {
   volunteer       Volunteer?
   organization    Organization?
   notifications   Notification[]
+  notificationPreferences UserNotificationPreferences?
   eventApplications EventApplication[]
   sentMessages    Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
   userVectors     UserVector[]
+  
+  // Relaciones de Chat
+  createdChats    Chat[] @relation("ChatCreator")
+  chatParticipants ChatParticipant[] @relation("ChatParticipants")
+  chatMessages    ChatMessage[] @relation("ChatMessages")
+  sentInvitations ChatInvitation[] @relation("ChatInvitationsSent")
+  receivedInvitations ChatInvitation[] @relation("ChatInvitationsReceived")
 
   @@map("users")
 }
@@ -166,6 +174,7 @@ model Event {
   // Relaciones
   applications EventApplication[]
   messages     Message[]
+  chats        Chat[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -226,15 +235,74 @@ model Notification {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  NotificationCategory @default(SYSTEM)
+  subcategory NotificationSubcategory?
   title     String
   message   String
-  type      NotificationType @default(INFO)
-  read      Boolean          @default(false)
+  template  String?
+  priority  NotificationPriority @default(NORMAL)
+  status    NotificationStatus @default(PENDING)
+  actionText String?
   actionUrl String?
+  actionData Json?
+  expiresAt DateTime?
+  sentAt    DateTime?
+  deliveredAt DateTime?
+  readAt    DateTime?
+  clickedAt DateTime?
+  relatedEventId String?
+  groupId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("notifications")
+}
+
+model NotificationTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  category    NotificationCategory
+  subcategory NotificationSubcategory?
+  
+  title       String
+  message     String
+  actionText  String?
+  
+  variables   String[] // Variables del template
+  priority    NotificationPriority @default(NORMAL)
+  expiresIn   Int?                // Días hasta expirar
+  
+  language    String              @default("es")
+  region      String?
+  
+  active      Boolean             @default(true)
+  version     Int                 @default(1)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@map("notification_templates")
+}
+
+model UserNotificationPreferences {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  preferences Json    // Preferencias por categoría
+  
+  emailNotifications    Boolean @default(true)
+  pushNotifications     Boolean @default(true)
+  inAppNotifications    Boolean @default(true)
+  smsNotifications      Boolean @default(false)
+  
+  quietHoursStart       String?
+  quietHoursEnd         String?
+  timezone              String  @default("UTC")
+  digestFrequency       DigestFrequency @default(DAILY)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("user_notification_preferences")
 }
 
 model Message {
@@ -337,8 +405,147 @@ enum NotificationType {
   MESSAGE
 }
 
+enum NotificationCategory {
+  SYSTEM
+  EVENT
+  APPLICATION
+  RATING
+  MESSAGE
+}
+
+enum NotificationSubcategory {
+  WELCOME
+  PROFILE_REMINDER
+  APPLICATION_SUBMITTED
+  APPLICATION_ACCEPTED
+  APPLICATION_REJECTED
+  EVENT_STARTED
+  EVENT_COMPLETED
+  EVENT_REMINDER
+  NEW_APPLICATION
+  RATING_REMINDER
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  ACTED
+  EXPIRED
+  ARCHIVED
+}
+
+enum DigestFrequency {
+  IMMEDIATE
+  HOURLY
+  DAILY
+  WEEKLY
+}
+
 enum MessageType {
   DIRECT
   EVENT_CHAT
   SYSTEM
+}
+
+// =================== MODELOS DE CHAT ===================
+
+model Chat {
+  id          String      @id @default(cuid())
+  type        ChatType    @default(INDIVIDUAL)
+  name        String?     // Para chats grupales
+  description String?     // Para chats grupales
+  eventId     String?     // Si es un chat de evento
+  event       Event?      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy   String      // Usuario que creó el chat
+  creator     User        @relation("ChatCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  lastMessageAt DateTime?
+  
+  // Relaciones
+  participants ChatParticipant[]
+  messages     ChatMessage[]
+  invitations  ChatInvitation[]
+  
+  @@map("chats")
+}
+
+model ChatParticipant {
+  id        String   @id @default(cuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("ChatParticipants", fields: [userId], references: [id], onDelete: Cascade)
+  role      ChatRole @default(MEMBER)
+  joinedAt  DateTime @default(now())
+  lastReadAt DateTime?
+  
+  @@unique([chatId, userId])
+  @@map("chat_participants")
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  chatId    String
+  chat      Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User        @relation("ChatMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  content   String
+  type      MessageType @default(DIRECT)
+  metadata  Json?       // Para archivos, imágenes, etc.
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  
+  // Para mensajes editados o eliminados
+  editedAt   DateTime?
+  deletedAt DateTime?
+  
+  @@map("chat_messages")
+}
+
+model ChatInvitation {
+  id          String           @id @default(cuid())
+  chatId      String
+  chat        Chat             @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  inviterId   String
+  inviter     User             @relation("ChatInvitationsSent", fields: [inviterId], references: [id], onDelete: Cascade)
+  inviteeId   String
+  invitee     User             @relation("ChatInvitationsReceived", fields: [inviteeId], references: [id], onDelete: Cascade)
+  status      InvitationStatus @default(PENDING)
+  message     String?          // Mensaje personalizado del invitador
+  createdAt   DateTime         @default(now())
+  respondedAt DateTime?
+  expiresAt   DateTime?
+  
+  @@unique([chatId, inviteeId])
+  @@map("chat_invitations")
+}
+
+enum ChatType {
+  INDIVIDUAL  // Chat 1 a 1
+  GROUP       // Chat grupal
+  EVENT       // Chat de evento específico
+  COMMUNITY   // Chat de comunidad general
+}
+
+enum ChatRole {
+  ADMIN       // Puede administrar el chat
+  MODERATOR   // Puede moderar mensajes
+  MEMBER      // Miembro regular
+}
+
+enum InvitationStatus {
+  PENDING     // Invitación pendiente
+  ACCEPTED    // Invitación aceptada
+  DECLINED    // Invitación rechazada
+  EXPIRED     // Invitación expirada
 }

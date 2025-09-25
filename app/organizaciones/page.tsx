@@ -1,199 +1,321 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { motion } from "framer-motion";
+import { Heart, Menu, X, Info, Mail, MapPin, Layers } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Heart, Menu, X } from "lucide-react";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
-export default function OrganizacionesMenuPage() {
-  const router = useRouter();
-  const pathname = usePathname();
+interface Organizacion {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  emoji: string;
+  email?: string;
+  address?: string;
+  areas?: string;
+}
+
+export default function OrganizacionesPage() {
+  const [organizaciones, setOrganizaciones] = useState<Organizacion[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const menuItems = ["Inicio", "Eventos", "Organizaciones", "Acerca de"];
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
+    setMounted(true);
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
-    const filterCards = (category: string) => {
-      const cards = document.querySelectorAll(".org-card") as NodeListOf<HTMLElement>;
-      const buttons = document.querySelectorAll("button");
-      buttons.forEach((btn) => btn.classList.remove("active-category"));
-      const activeBtn = document.getElementById("btn-" + category);
-      if (activeBtn) activeBtn.classList.add("active-category");
-      cards.forEach((card) => {
-        card.style.display =
-          category === "todas" || card.classList.contains(category) ? "block" : "none";
-      });
-    };
-
-    filterCards("todas");
-
-    ["todas", "infancia", "medio", "animales", "educacion"].forEach((cat) => {
-      const btn = document.getElementById("btn-" + cat);
-      if (btn) {
-        btn.onclick = () => filterCards(cat);
-      }
-    });
+    fetch("/api/organizacionespublic")
+      .then((res) => res.json())
+      .then((data) => {
+        setOrganizaciones(data.organizaciones || []);
+      })
+      .catch((err) => console.error("Error al cargar organizaciones:", err))
+      .finally(() => setLoading(false));
   }, []);
 
-  const isActive = (href: string) => pathname === href;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-purple-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-gradient-to-tr from-[#f3f0ff] via-[#f9f6ff] to-[#fffaff] text-gray-800 font-sans min-h-screen flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 overflow-hidden flex flex-col">
+      {/* ===== HEADER ===== */}
       <header
         className={`fixed w-full z-50 transition-all duration-300 ${
-          scrolled ? "bg-white/90 backdrop-blur-md shadow-md" : "bg-transparent"
+          mounted && scrolled
+            ? "bg-white/90 backdrop-blur-md shadow-md"
+            : "bg-transparent"
         }`}
       >
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <Heart className="h-8 w-8 text-[#7B61FF] fill-purple-200" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#7B61FF] to-[#A78BFA] bg-clip-text text-transparent">
-              VolunNet
-            </h1>
+          <div className="flex items-center gap-2">
+            <button
+              className="flex items-center gap-2 focus:outline-none"
+              onClick={() => router.push("/")}
+            >
+              <Heart className="h-8 w-8 text-blue-600 fill-blue-200" />
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                VolunNet
+              </span>
+            </button>
           </div>
+
+          {/* Desktop Nav */}
           <nav className="hidden md:flex space-x-8">
-            <Link
-              href="/eventosfin"
-              className={`$${
-                isActive("/eventosfin")
-                  ? "text-[#7B61FF] font-semibold"
-                  : "text-gray-700 hover:text-[#7B61FF]"
-              }`}
-            >
-              Eventos
-            </Link>
-            <Link
-              href="/organizaciones"
-              className={`$${
-                isActive("/organizaciones")
-                  ? "text-[#7B61FF] font-semibold"
-                  : "text-gray-700 hover:text-[#7B61FF]"
-              }`}
-            >
-              Organizaciones
-            </Link>
-            <Link
-              href="/acerca-de"
-              className={`$${
-                isActive("/acerca-de")
-                  ? "text-[#7B61FF] font-semibold"
-                  : "text-gray-700 hover:text-[#7B61FF]"
-              }`}
-            >
-              Acerca de
-            </Link>
+            {menuItems.map((item, index) => (
+              <motion.div
+                key={item}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: 1.05 }}
+              >
+                <Link
+                  href={`/${
+                    item.toLowerCase().replace(" ", "-") === "inicio"
+                      ? ""
+                      : item.toLowerCase().replace(" ", "-")
+                  }`}
+                  className={`transition-colors relative group ${
+                    pathname.includes(item.toLowerCase())
+                      ? "text-blue-600 font-semibold"
+                      : "text-gray-700 hover:text-blue-600"
+                  }`}
+                >
+                  {item}
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+                </Link>
+              </motion.div>
+            ))}
           </nav>
+
+          {/* Auth Buttons */}
           <div className="hidden md:flex space-x-3">
             <Button variant="outline" className="rounded-full px-6" asChild>
               <Link href="/login">Iniciar Sesión</Link>
             </Button>
-            <Button
-              className="rounded-full px-6 bg-gradient-to-r from-[#7B61FF] to-[#A78BFA] text-white"
-              asChild
-            >
+            <Button className="rounded-full px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700" asChild>
               <Link href="/registro">Registrarse</Link>
             </Button>
           </div>
+
+          {/* Mobile Menu Button */}
           <div className="md:hidden">
-            <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              {isMenuOpen ? <X /> : <Menu />}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>
           </div>
         </div>
 
+        {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden px-6 pb-4 pt-2 bg-white shadow-md">
-            <nav className="flex flex-col space-y-3">
-              <Link href="/eventosfin">Eventos</Link>
-              <Link href="/organizaciones">Organizaciones</Link>
-              <Link href="/acerca-de">Acerca de</Link>
-              <Link href="/login">Iniciar Sesión</Link>
-              <Link href="/registro">Registrarse</Link>
-            </nav>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="md:hidden bg-white border-t"
+          >
+            <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
+              {menuItems.map((item) => (
+                <Link
+                  key={item}
+                  href={`/${
+                    item.toLowerCase().replace(" ", "-") === "inicio"
+                      ? ""
+                      : item.toLowerCase().replace(" ", "-")
+                  }`}
+                  className="text-gray-700 hover:text-blue-600 transition-colors py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item}
+                </Link>
+              ))}
+              <div className="flex flex-col space-y-2 pt-2 border-t">
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href="/login">Iniciar Sesión</Link>
+                </Button>
+                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600" asChild>
+                  <Link href="/registro">Registrarse</Link>
+                </Button>
+              </div>
+            </div>
+          </motion.div>
         )}
       </header>
 
-      <section className="text-center py-12 px-4 pt-32">
-        <h2 className="text-4xl font-extrabold mb-4 text-gray-800">
-          Organizaciones que <span className="bg-gradient-to-r from-[#7B61FF] via-[#A78BFA] to-[#C084FC] bg-clip-text text-transparent">transforman</span> vidas
-        </h2>
-        <p className="text-lg text-gray-600 max-w-xl mx-auto">
-          Elige una causa, explora organizaciones y comienza a colaborar.
-        </p>
+      {/* ===== HERO ===== */}
+      <section className="relative pt-32 pb-20 text-center overflow-hidden">
+        <motion.h1
+          className="text-5xl md:text-6xl font-extrabold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent drop-shadow-lg"
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1 }}
+        >
+          Organizaciones
+        </motion.h1>
+        <motion.p
+          className="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.8 }}
+        >
+          Descubre las organizaciones que forman parte de VolunNet 🌍
+        </motion.p>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 py-4">
-        <div className="flex flex-wrap gap-3 justify-center text-sm font-medium">
-          {[{ id: "todas", label: "Todas" }, { id: "infancia", label: "👶 Infancia" }, { id: "medio", label: "🌿 Medio ambiente" }, { id: "animales", label: "🐶 Animales" }, { id: "educacion", label: "📚 Educación" }].map((cat) => (
-            <button key={cat.id} id={`btn-${cat.id}`} className={`px-4 py-2 rounded-full bg-white shadow hover:bg-gray-100 ${cat.id === "todas" ? "active-category" : ""}`}>
-              {cat.label}
-            </button>
-          ))}
-        </div>
-      </section>
+      {/* ===== MAIN CONTENT ===== */}
+      <main className="container mx-auto px-4 py-16 relative flex-1">
+        {organizaciones.length === 0 ? (
+          <p className="text-center text-gray-600">
+            No hay organizaciones registradas.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {organizaciones.map((org, idx) => (
+              <motion.div
+                key={org.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                whileHover={{ scale: 1.05, y: -5 }}
+              >
+                <Card className="overflow-hidden rounded-3xl border border-purple-200 shadow-xl bg-white/70 backdrop-blur-xl hover:shadow-2xl transition">
+                  {/* 🔹 Emoji animado */}
+                  <div className="relative w-full h-40 flex items-center justify-center overflow-hidden bg-gradient-to-r from-purple-50 to-blue-50">
+                    <motion.div
+                      className="absolute inset-0 grid grid-cols-6 gap-6 opacity-20 text-4xl select-none pointer-events-none"
+                      animate={{ y: [0, 20, -10, 0] }}
+                      transition={{
+                        duration: 10,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      {Array.from({ length: 36 }).map((_, i) => (
+                        <span key={i} className="flex items-center justify-center">
+                          {org.emoji}
+                        </span>
+                      ))}
+                    </motion.div>
+                    <motion.span
+                      className="relative text-7xl z-10"
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      {org.emoji}
+                    </motion.span>
+                  </div>
 
-      <main className="max-w-6xl mx-auto px-6 pt-16 pb-20 grid gap-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 flex-grow">
-        {[{
-          img: "/img/organizacion1.jpg", clase: "infancia", titulo: "Fundación Sonrisas", lugar: "CDMX · Infancia", desc: "Actividades y apoyo emocional para niños vulnerables."
-        }, {
-          img: "/img/organizacion2.jpg", clase: "medio", titulo: "Verde Vivo A.C.", lugar: "Querétaro · Medio ambiente", desc: "Reforestación, educación ecológica y limpieza de espacios."
-        }, {
-          img: "/img/organizacion3.jpg", clase: "animales", titulo: "Apoyo Animal MX", lugar: "Guadalajara · Animales", desc: "Rescate, rehabilitación y adopción de animales."
-        }, {
-          img: "/img/organizacion4.jpg", clase: "educacion", titulo: "Educar para el Futuro", lugar: "Monterrey · Educación", desc: "Clases gratuitas y mentoría a jóvenes en situación de riesgo."
-        }].map((card, i) => (
-          <div key={i} className={`org-card ${card.clase} bg-white rounded-3xl overflow-hidden shadow-2xl hover:shadow-[0_10px_30px_rgba(123,97,255,0.4)] transition-all`}>
-            <Image src={card.img} alt={card.titulo} width={400} height={200} className="w-full h-48 object-cover" />
-            <div className="p-6">
-              <h3 className="text-2xl font-bold text-[#7B61FF] mb-2">{card.titulo}</h3>
-              <p className="text-sm text-gray-500 mb-2">{card.lugar}</p>
-              <p className="text-gray-700">{card.desc}</p>
-            </div>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-2xl font-bold text-gray-800">
+                        {org.nombre}
+                      </CardTitle>
+                      <Badge className="bg-blue-100 text-blue-800 font-semibold">
+                        Activa
+                      </Badge>
+                    </div>
+
+                    <p className="text-gray-600 leading-relaxed border-t pt-3">
+                      {org.descripcion}
+                    </p>
+
+                    {/* Modal con más información */}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="mt-4 w-full flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl">
+                          <Info className="h-4 w-4" /> Ver más
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl rounded-2xl shadow-2xl bg-white/90 backdrop-blur-xl">
+                        <DialogHeader>
+                          <DialogTitle className="text-2xl font-bold text-purple-800 flex items-center gap-2">
+                            {org.emoji} {org.nombre}
+                          </DialogTitle>
+                          <DialogDescription className="text-gray-600">
+                            Detalles de la organización
+                          </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="mt-6 space-y-4 text-sm text-gray-700">
+                          {org.descripcion && (
+                            <div>
+                              <h3 className="font-semibold text-purple-700 mb-1">
+                                Descripción
+                              </h3>
+                              <p>{org.descripcion}</p>
+                            </div>
+                          )}
+                          {org.email && (
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-5 w-5 text-purple-600" />
+                              <span>{org.email}</span>
+                            </div>
+                          )}
+                          {org.address && (
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-5 w-5 text-purple-600" />
+                              <span>{org.address}</span>
+                            </div>
+                          )}
+                          {org.areas && (
+                            <div className="flex items-center gap-2">
+                              <Layers className="h-5 w-5 text-purple-600" />
+                              <span>{org.areas}</span>
+                            </div>
+                          )}
+
+                          <div className="p-4 rounded-xl bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 text-center">
+                            💡 ¡Súmate a las iniciativas de esta organización y sé parte del cambio!
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
           </div>
-        ))}
+        )}
       </main>
 
-      <div className="text-center my-8">
-        <button onClick={() => router.push("/")} className="float-bounce inline-flex items-center gap-5 px-10 py-4 rounded-full text-white bg-gradient-to-r from-[#7B61FF] via-[#9675ff] to-[#c0a7ff] hover:brightness-110 transition font-semibold shadow-xl">
-          ← Volver al inicio
-        </button>
+      {/* ===== FOOTER ===== */}
+        <div className="border-t border-white-800 mt-8 pt-8 text-center text-black-400">
+        <p>&copy; 2025 VolunNet - CUCEI. Todos los derechos reservados.💜 </p>
       </div>
-
-      <footer className="text-center text-sm bg-gradient-to-r from-[#e2dbff] via-[#f7f3ff] to-[#fff8ff] text-[#6b5ca9] py-8 border-t border-gray-200">
-        © 2025 VolunNet - CUCEI. Todos los derechos reservados.💜
-      </footer>
-
-      <style jsx>{`
-        .active-category {
-          background-color: #7b61ff;
-          color: white;
-        }
-        @keyframes pulseFloat {
-          0% {
-            transform: translateY(0);
-            box-shadow: 0 0 0 0 rgba(123, 97, 255, 0.5);
-          }
-          50% {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 16px rgba(123, 97, 255, 0.3);
-          }
-          100% {
-            transform: translateY(0);
-            box-shadow: 0 0 0 0 rgba(123, 97, 255, 0.5);
-          }
-        }
-        .float-bounce {
-          animation: pulseFloat 2.2s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 }

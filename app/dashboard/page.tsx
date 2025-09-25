@@ -83,6 +83,7 @@ export default function Dashboard() {
   const [completedEvents, setCompletedEvents] = useState<Event[]>([])
   const [stats, setStats] = useState<UserStats | null>(null)
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [voluntario, setVoluntario] = useState<any>(null)
@@ -342,7 +343,7 @@ const loadEventsData = useCallback(async () => {
     try {
       updateLoadingStep("notifications", "loading")
       
-      const response = await fetch('/api/notifications?limit=5', {
+      const response = await fetch('/api/notifications/user?limit=5', {
         credentials: 'include'
       })
       
@@ -350,6 +351,7 @@ const loadEventsData = useCallback(async () => {
         const data = await response.json()
         const notificationsData = data.notifications || []
         setNotifications(notificationsData)
+        setUnreadCount(data.unreadCount || 0)
       } else {
         const notificationsData = [
           { id: "1", title: "Nuevo evento disponible", message: "Se ha publicado un nuevo evento de limpieza de playa", type: "info", created_at: new Date().toISOString(), read: false },
@@ -357,6 +359,7 @@ const loadEventsData = useCallback(async () => {
           { id: "3", title: "Recordatorio de evento", message: "Tu evento de mañana comienza a las 9:00 AM", type: "reminder", created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), read: true },
         ]
         setNotifications(notificationsData)
+        setUnreadCount(notificationsData.filter(n => !n.read).length)
       }
       
       updateLoadingStep("notifications", "completed")
@@ -366,6 +369,10 @@ const loadEventsData = useCallback(async () => {
       setNotifications([])
     }
   }, [updateLoadingStep])
+
+  const updateUnreadCount = useCallback((newCount: number) => {
+    setUnreadCount(newCount)
+  }, [])
 
   useEffect(() => {
   if (isInitialized.current) {
@@ -605,6 +612,11 @@ const handleEventClick = async (event: Event) => {
                 <Link href="/notificaciones" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative">
                   <Bell className="h-5 w-5 group-hover:text-blue-700 transition" />
                   <span>Notificaciones</span>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                   <span className="absolute left-0 -bottom-0.5 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
                 </Link>
               </nav>
@@ -715,7 +727,14 @@ const handleEventClick = async (event: Event) => {
                 </TabsTrigger>
                 <TabsTrigger value="disponibles" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Eventos Disponibles</TabsTrigger>
                 <TabsTrigger value="mis-eventos" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Mis Eventos</TabsTrigger>
-                <TabsTrigger value="notificaciones" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Notificaciones</TabsTrigger>
+                <TabsTrigger value="notificaciones" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white relative">
+                  Notificaciones
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="calificaciones" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Calificaciones</TabsTrigger>
               </TabsList>
 
@@ -1083,6 +1102,35 @@ const handleEventClick = async (event: Event) => {
                                 )}
                               </div>
                             </div>
+                            {!notification.read && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const response = await fetch('/api/notifications/user', {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      credentials: 'include',
+                                      body: JSON.stringify({ notificationId: notification.id })
+                                    })
+                                    if (response.ok) {
+                                      // Actualizar el estado local
+                                      setNotifications(prev => 
+                                        prev.map(n => 
+                                          n.id === notification.id ? { ...n, read: true } : n
+                                        )
+                                      )
+                                      // Actualizar contador
+                                      setUnreadCount(prev => Math.max(0, prev - 1))
+                                    }
+                                  } catch (error) {
+                                    console.error('Error marcando notificación como leída:', error)
+                                  }
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                              >
+                                Marcar leída
+                              </button>
+                            )}
                           </div>
                         </motion.div>
                       ))

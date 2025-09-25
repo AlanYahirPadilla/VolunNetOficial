@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { z } from "zod"
+import { eventNotificationService } from "@/lib/services/EventNotificationService"
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -218,12 +219,13 @@ export async function registerAction(prevState: any, formData: FormData) {
       }
     }
 
-    // Crear notificación de bienvenida
-    const notificationId = generateId()
-    await sql`
-      INSERT INTO notifications (id, "userId", title, message, type, "createdAt", "updatedAt")
-      VALUES (${notificationId}, ${userId}, 'Bienvenido a VolunNet', 'Tu cuenta ha sido creada exitosamente. ¡Comienza a explorar oportunidades de voluntariado!', 'SUCCESS', ${now}, ${now})
-    `
+    // Crear notificación de bienvenida usando el servicio especializado
+    try {
+      await eventNotificationService.sendWelcomeNotification(userId)
+    } catch (notificationError) {
+      console.error("Error enviando notificación de bienvenida:", notificationError)
+      // No fallar el registro por error en notificaciones
+    }
 
     return {
       success: true,

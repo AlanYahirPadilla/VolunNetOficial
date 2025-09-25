@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/app/auth/actions"
 import { prisma } from "@/lib/prisma"
-import { NotificationService } from "@/lib/services/NotificationService"
+import { eventNotificationService } from "@/lib/services/EventNotificationService"
 
 // Forzar que esta ruta sea dinámica
 export const dynamic = 'force-dynamic'
@@ -156,9 +156,6 @@ export async function POST(request: NextRequest) {
     })
 
     // Crear notificaciones para el voluntario y el organizador
-    const notificationService = new NotificationService()
-    
-    // Obtener información del evento y organización para las notificaciones
     const eventInfo = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
@@ -171,31 +168,12 @@ export async function POST(request: NextRequest) {
     })
 
     if (eventInfo) {
-      // Notificación para el voluntario (confirmación de postulación)
-      await notificationService.createNotification({
-        userId: user.id,
-        title: "Postulación Enviada",
-        message: `Te has postulado exitosamente al evento "${eventInfo.title}". El organizador revisará tu solicitud.`,
-        category: "APPLICATION",
-        subcategory: "APPLICATION_RECEIVED",
-        priority: "NORMAL",
-        actionUrl: `/eventos/${eventId}`,
-        actionText: "Ver Evento",
-        relatedEventId: eventId
-      })
-
-      // Notificación para el organizador (nueva postulación)
-      await notificationService.createNotification({
-        userId: eventInfo.organization.userId,
-        title: "Nueva Postulación",
-        message: `${user.firstName} ${user.lastName} se ha postulado al evento "${eventInfo.title}".`,
-        category: "APPLICATION",
-        subcategory: "APPLICATION_RECEIVED",
-        priority: "NORMAL",
-        actionUrl: `/eventos/${eventId}`,
-        actionText: "Ver Postulación",
-        relatedEventId: eventId
-      })
+      // Enviar notificaciones usando el servicio especializado
+      await eventNotificationService.sendApplicationSubmittedNotification(
+        user.id,
+        eventId,
+        eventInfo.organization.userId
+      )
     }
 
     return NextResponse.json({ 

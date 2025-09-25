@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NotificationCategory, NotificationPriority, NotificationStatus, NotificationSubcategory } from '@prisma/client'
+import { Resend } from 'resend'
 
 export interface NotificationData {
   userId: string
@@ -205,8 +206,30 @@ export class NotificationService {
 
   // Envío por email (placeholder)
   private async sendEmail(notification: any): Promise<void> {
-    // TODO: Implementar envío por email
-    console.log('Sending email notification:', notification.id)
+    const apiKey = process.env.RESEND_API_KEY
+    const from = process.env.EMAIL_FROM || 'notificaciones@volunnet.dev'
+    const to = await this.resolveUserEmail(notification.userId)
+
+    if (!apiKey || !to) {
+      console.log('Email not sent (missing RESEND_API_KEY or user email)')
+      return
+    }
+
+    const resend = new Resend(apiKey)
+
+    const subject = notification.title
+    const html = this.renderEmailHtml(notification)
+
+    try {
+      await resend.emails.send({
+        from,
+        to,
+        subject,
+        html,
+      })
+    } catch (error) {
+      console.error('Error sending email:', error)
+    }
   }
 
   // Envío push (placeholder)
@@ -219,6 +242,25 @@ export class NotificationService {
   private async sendSMS(notification: any): Promise<void> {
     // TODO: Implementar envío por SMS
     console.log('Sending SMS notification:', notification.id)
+  }
+
+  private async resolveUserEmail(userId: string): Promise<string | null> {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
+    return user?.email || null
+  }
+
+  private renderEmailHtml(notification: any): string {
+    const actionButton = notification.actionUrl && notification.actionText
+      ? `<div style="margin-top:20px"><a href="${notification.actionUrl}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#2563EB;color:#fff;text-decoration:none">${notification.actionText}</a></div>`
+      : ''
+    return `
+      <div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#111827">
+        <h2 style="margin:0 0 8px 0">${notification.title}</h2>
+        <p style="margin:0 0 12px 0;color:#374151">${notification.message}</p>
+        ${actionButton}
+        <p style="margin-top:24px;color:#6B7280;font-size:12px">VolunNet · Notificaciones automáticas</p>
+      </div>
+    `
   }
 
   // Marcar notificación como leída

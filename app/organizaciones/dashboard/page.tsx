@@ -3,11 +3,14 @@
 import { useState, useRef, useEffect, Suspense } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { Heart, Home, Calendar, Users, Bell, LogOut, User, Settings, PlusCircle, CheckCircle, Star } from "lucide-react"
+import { Heart, Home, Calendar, Users, Bell, LogOut, User, Settings, PlusCircle, CheckCircle, Star, MessageCircle } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { getCurrentUser } from "@/app/auth/actions"
+import { ChatList } from "@/components/chat/ChatList"
+import { ChatInterface } from "@/components/chat/ChatInterface"
+import { ChatInvitations } from "@/components/chat/ChatInvitations"
 
 // Forzar que esta página sea dinámica
 export const dynamic = 'force-dynamic'
@@ -123,6 +126,12 @@ function UserMenu({ organizationName, organizationEmail }: { organizationName: s
           <Link href="/organizaciones/perfil" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
             Perfil
           </Link>
+          <Link href="/notificaciones" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Notificaciones
+          </Link>
+          <Link href="/organizaciones/comunidad" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Comunidad
+          </Link>
           <Link href="/organizaciones/configuracion" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
             Configuración
           </Link>
@@ -161,6 +170,8 @@ function OrganizadorDashboardContent() {
   const [organizationEmail, setOrganizationEmail] = useState("")
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [selectedChat, setSelectedChat] = useState<any>(null)
   const [stats, setStats] = useState({
     totalEventos: 0,
     postulaciones: 0,
@@ -181,7 +192,7 @@ function OrganizadorDashboardContent() {
   // Detectar el parámetro tab de la URL y cambiar la pestaña automáticamente
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab')
-    if (tabFromUrl && ['mis-eventos', 'postulaciones', 'estadisticas'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['mis-eventos', 'postulaciones', 'estadisticas', 'notificaciones', 'comunidad'].includes(tabFromUrl)) {
       setTab(tabFromUrl)
     }
   }, [searchParams])
@@ -341,6 +352,23 @@ function OrganizadorDashboardContent() {
     fetchEvents()
   }, [])
 
+  // Cargar notificaciones no leídas
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch('/api/notifications/user')
+        if (response.ok) {
+          const data = await response.json()
+          setUnreadCount(data.unreadCount || 0)
+        }
+      } catch (error) {
+        console.error('Error loading notifications:', error)
+      }
+    }
+
+    fetchNotifications()
+  }, [])
+
   // Actualizar estadísticas basadas en eventos reales
   useEffect(() => {
     setStats(prev => ({ ...prev, totalEventos: events.length }))
@@ -422,6 +450,25 @@ function OrganizadorDashboardContent() {
                   tab === "mis-eventos" ? "text-blue-700" : "group-hover:text-blue-700"
                 }`} />
                 <span>Inicio</span>
+              </Link>
+              <Link 
+                href="/notificaciones" 
+                className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative"
+              >
+                <Bell className="h-5 w-5 group-hover:text-blue-700 transition" />
+                <span>Notificaciones</span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+              <Link 
+                href="/organizaciones/comunidad" 
+                className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group"
+              >
+                <MessageCircle className="h-5 w-5 group-hover:text-blue-700 transition" />
+                <span>Comunidad</span>
               </Link>
               <Link 
                 href="/organizaciones/eventos-finalizados" 
@@ -524,6 +571,15 @@ function OrganizadorDashboardContent() {
                 <TabsTrigger value="mis-eventos" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Mis Eventos</TabsTrigger>
                 <TabsTrigger value="postulaciones" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Postulaciones</TabsTrigger>
                 <TabsTrigger value="estadisticas" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Estadísticas</TabsTrigger>
+                <TabsTrigger value="notificaciones" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white relative">
+                  Notificaciones
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="comunidad" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Comunidad</TabsTrigger>
               </TabsList>
               <TabsContent value="mis-eventos">
                 <div className="flex justify-end mb-4 gap-2">
@@ -817,6 +873,80 @@ function OrganizadorDashboardContent() {
                   </Card>
                 </div>
               </TabsContent>
+
+              <TabsContent value="notificaciones">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-gray-900">Notificaciones</h2>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.location.href = '/notificaciones'}
+                    >
+                      Ver todas
+                    </Button>
+                  </div>
+                  
+                  <Card className="bg-white rounded-2xl shadow-lg border border-blue-50">
+                    <CardContent className="p-6">
+                      <div className="text-center py-12">
+                        <Bell className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          Notificaciones de tu organización
+                        </h3>
+                        <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                          Aquí verás notificaciones sobre nuevas postulaciones, cambios en tus eventos y mensajes de voluntarios.
+                        </p>
+                        <Button onClick={() => window.location.href = '/notificaciones'}>
+                          Ver Centro de Notificaciones
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="comunidad">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-gray-900">Comunidad</h2>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.location.href = '/organizaciones/comunidad'}
+                    >
+                      Ver comunidad completa
+                    </Button>
+                  </div>
+                  
+                  {selectedChat ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <Button
+                          variant="outline"
+                          onClick={() => setSelectedChat(null)}
+                          className="flex items-center gap-2"
+                        >
+                          ← Volver a chats
+                        </Button>
+                        <h3 className="text-lg font-semibold">Chat activo</h3>
+                      </div>
+                      <ChatInterface chat={selectedChat} onClose={() => setSelectedChat(null)} />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <ChatList 
+                        onChatSelect={setSelectedChat}
+                        onCreateChat={() => window.location.href = '/organizaciones/comunidad'}
+                      />
+                      <ChatInvitations 
+                        onInvitationAccepted={() => {}}
+                        onInvitationDeclined={() => {}}
+                      />
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
 
@@ -831,9 +961,26 @@ function OrganizadorDashboardContent() {
             >
               <div className="font-semibold text-gray-800 mb-2 text-sm flex items-center gap-2">
                 <Bell className="h-5 w-5 text-blue-400" />
-                Notificaciones (próximamente)
+                Notificaciones
+                {unreadCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </div>
-              <div className="text-gray-500 text-xs text-center">Aquí verás notificaciones relevantes para tu organización.</div>
+              <div className="text-gray-500 text-xs text-center mb-4">
+                {unreadCount > 0 
+                  ? `Tienes ${unreadCount} notificación${unreadCount > 1 ? 'es' : ''} sin leer`
+                  : "No tienes notificaciones nuevas"
+                }
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => window.location.href = '/notificaciones'}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Ver todas
+              </Button>
             </motion.div>
           </div>
         </div>

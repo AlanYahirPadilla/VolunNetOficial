@@ -10,21 +10,57 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 interface Notification {
-  id: number;
+  id: string;
   title: string;
   message: string;
-  type: "info" | "alert" | "done" | "pending" | "reminder";
-  date: string;
+  category: string;
+  subcategory?: string;
+  priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+  status: "PENDING" | "SENT" | "DELIVERED" | "READ" | "ACTED" | "EXPIRED" | "ARCHIVED";
+  actionText?: string;
+  actionUrl?: string;
+  createdAt: string;
+  readAt?: string;
+  relatedEventId?: string;
 }
 
-const exampleNotifications: Notification[] = [
-  { id: 1, title: "Bienvenida", message: "Has iniciado sesión correctamente.", type: "info", date: "31 Ago 2025" },
-  { id: 2, title: "Tarea pendiente", message: "Recuerda enviar tu proyecto antes de las 5 PM.", type: "alert", date: "31 Ago 2025" },
-  { id: 3, title: "Evento completado", message: "Tu asistencia al taller fue registrada correctamente.", type: "done", date: "30 Ago 2025" },
-  { id: 4, title: "Actualización", message: "Se ha actualizado tu perfil de usuario.", type: "info", date: "29 Ago 2025" },
-  { id: 5, title: "Tarea por hacer", message: "Tienes tareas pendientes para hoy.", type: "pending", date: "31 Ago 2025" },
-  { id: 6, title: "Recordatorio", message: "No olvides asistir a la reunión de mañana.", type: "reminder", date: "31 Ago 2025" },
-];
+// Función para mapear categorías del sistema a tipos visuales
+function getNotificationType(notification: Notification): "info" | "alert" | "done" | "pending" | "reminder" {
+  if (notification.subcategory === "WELCOME" || notification.subcategory === "PROFILE_REMINDER") {
+    return "info";
+  }
+  if (notification.subcategory === "APPLICATION_ACCEPTED" || notification.subcategory === "EVENT_COMPLETED") {
+    return "done";
+  }
+  if (notification.subcategory === "APPLICATION_REJECTED" || notification.priority === "URGENT") {
+    return "alert";
+  }
+  if (notification.subcategory === "EVENT_REMINDER") {
+    return "reminder";
+  }
+  if (notification.subcategory === "APPLICATION_SUBMITTED" || notification.subcategory === "EVENT_STARTED") {
+    return "pending";
+  }
+  return "info";
+}
+
+// Función para formatear fecha
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 1) return "Hoy";
+  if (diffDays === 2) return "Ayer";
+  if (diffDays <= 7) return `${diffDays - 1} días`;
+  
+  return date.toLocaleDateString('es-ES', { 
+    day: 'numeric', 
+    month: 'short',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+  });
+}
 
 // === User Menu del Dashboard ===
 function UserMenu({ user }: { user: any }) {
@@ -97,22 +133,78 @@ function UserMenu({ user }: { user: any }) {
 
 export default function NotificacionesPage() {
   const [user, setUser] = useState<any>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    const loadUser = async () => {
+    const loadData = async () => {
       try {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
+        
+        if (currentUser) {
+          // Cargar notificaciones del usuario
+          const response = await fetch('/api/notifications/user');
+          if (response.ok) {
+            const data = await response.json();
+            setNotifications(data.notifications || []);
+            setUnreadCount(data.unreadCount || 0);
+          }
+        }
       } catch (error) {
-        console.error("Error loading user:", error);
+        console.error("Error loading data:", error);
       } finally {
         setLoading(false);
       }
     };
-    loadUser();
+    loadData();
   }, []);
+
+  // Función para marcar notificación como leída
+  const markAsRead = async (notificationId: string) => {
+    try {
+      await fetch('/api/notifications/user', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId })
+      });
+      
+      // Actualizar estado local
+      setNotifications(prev => 
+        prev.map(n => 
+          n.id === notificationId 
+            ? { ...n, status: 'READ' as const, readAt: new Date().toISOString() }
+            : n
+        )
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  // Función para generar notificaciones de ejemplo
+  const generateDemoNotifications = async () => {
+    try {
+      const response = await fetch('/api/notifications/demo', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        // Recargar notificaciones
+        const notificationsResponse = await fetch('/api/notifications/user');
+        if (notificationsResponse.ok) {
+          const data = await notificationsResponse.json();
+          setNotifications(data.notifications || []);
+          setUnreadCount(data.unreadCount || 0);
+        }
+      }
+    } catch (error) {
+      console.error('Error generating demo notifications:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -146,12 +238,16 @@ export default function NotificacionesPage() {
     { label: "Completadas", value: "done", color: "bg-green-100 text-green-800" },
     { label: "Pendientes", value: "pending", color: "bg-yellow-100 text-yellow-800" },
     { label: "Recordatorios", value: "reminder", color: "bg-purple-100 text-purple-800" },
+    { label: "No leídas", value: "unread", color: "bg-orange-100 text-orange-800" },
   ];
 
-  const filteredNotifications =
-    filter === "all"
-      ? exampleNotifications
-      : exampleNotifications.filter((n) => n.type === filter);
+  const filteredNotifications = notifications.filter((notification) => {
+    if (filter === "all") return true;
+    if (filter === "unread") return notification.status !== "READ";
+    
+    const type = getNotificationType(notification);
+    return type === filter;
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -210,6 +306,11 @@ export default function NotificacionesPage() {
               >
                 <Bell className="h-5 w-5 group-hover:text-blue-700 transition" />
                 <span>Notificaciones</span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
                 <span className="absolute left-0 -bottom-0.5 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
               </Link>
             </nav>
@@ -238,90 +339,148 @@ export default function NotificacionesPage() {
 
         {/* Lista de notificaciones con estilo mejorado */}
         <section className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredNotifications.map((n, idx) => (
-            <div
-              key={n.id}
-              className="bg-white/95 backdrop-blur-md border border-gray-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 hover:scale-105 overflow-hidden flex flex-col animate-fadeIn"
-              style={{ animationDelay: `${idx * 100}ms`, animationFillMode: "forwards" }}
-            >
-              {/* Header con ícono y tipo */}
+          {filteredNotifications.map((notification, idx) => {
+            const type = getNotificationType(notification);
+            const isUnread = notification.status !== "READ";
+            
+            return (
               <div
-                className={`flex items-center gap-3 px-5 py-3 border-b ${
-                  n.type === "info"
-                    ? "bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200"
-                    : n.type === "alert"
-                    ? "bg-gradient-to-r from-red-50 to-red-100 border-red-200"
-                    : n.type === "done"
-                    ? "bg-gradient-to-r from-green-50 to-green-100 border-green-200"
-                    : n.type === "pending"
-                    ? "bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200"
-                    : "bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200"
+                key={notification.id}
+                className={`bg-white/95 backdrop-blur-md border rounded-3xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 hover:scale-105 overflow-hidden flex flex-col animate-fadeIn ${
+                  isUnread 
+                    ? "border-blue-300 ring-2 ring-blue-100" 
+                    : "border-gray-100"
                 }`}
+                style={{ animationDelay: `${idx * 100}ms`, animationFillMode: "forwards" }}
               >
+                {/* Header con ícono y tipo */}
                 <div
-                  className={`h-10 w-10 flex items-center justify-center rounded-full shadow-inner text-lg ${
-                    n.type === "info"
-                      ? "bg-blue-100 text-blue-600"
-                      : n.type === "alert"
-                      ? "bg-red-100 text-red-600"
-                      : n.type === "done"
-                      ? "bg-green-100 text-green-600"
-                      : n.type === "pending"
-                      ? "bg-yellow-100 text-yellow-600"
-                      : "bg-purple-100 text-purple-600"
+                  className={`flex items-center gap-3 px-5 py-3 border-b ${
+                    type === "info"
+                      ? "bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200"
+                      : type === "alert"
+                      ? "bg-gradient-to-r from-red-50 to-red-100 border-red-200"
+                      : type === "done"
+                      ? "bg-gradient-to-r from-green-50 to-green-100 border-green-200"
+                      : type === "pending"
+                      ? "bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200"
+                      : "bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200"
                   }`}
                 >
-                  {n.type === "info" && "ℹ️"}
-                  {n.type === "alert" && "⚠️"}
-                  {n.type === "done" && "✅"}
-                  {n.type === "pending" && "⏳"}
-                  {n.type === "reminder" && "🔔"}
-                </div>
-                <div className="flex-1">
-                  <h2 className="font-semibold text-gray-900 text-sm">{n.title}</h2>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      n.type === "info"
-                        ? "bg-blue-100 text-blue-700"
-                        : n.type === "alert"
-                        ? "bg-red-100 text-red-700"
-                        : n.type === "done"
-                        ? "bg-green-100 text-green-700"
-                        : n.type === "pending"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-purple-100 text-purple-700"
+                  <div
+                    className={`h-10 w-10 flex items-center justify-center rounded-full shadow-inner text-lg ${
+                      type === "info"
+                        ? "bg-blue-100 text-blue-600"
+                        : type === "alert"
+                        ? "bg-red-100 text-red-600"
+                        : type === "done"
+                        ? "bg-green-100 text-green-600"
+                        : type === "pending"
+                        ? "bg-yellow-100 text-yellow-600"
+                        : "bg-purple-100 text-purple-600"
                     }`}
                   >
-                    {n.type === "info"
-                      ? "Informativa"
-                      : n.type === "alert"
-                      ? "Importante"
-                      : n.type === "done"
-                      ? "Completada"
-                      : n.type === "pending"
-                      ? "Pendiente"
-                      : "Recordatorio"}
-                  </span>
+                    {type === "info" && "ℹ️"}
+                    {type === "alert" && "⚠️"}
+                    {type === "done" && "✅"}
+                    {type === "pending" && "⏳"}
+                    {type === "reminder" && "🔔"}
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="font-semibold text-gray-900 text-sm">{notification.title}</h2>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        type === "info"
+                          ? "bg-blue-100 text-blue-700"
+                          : type === "alert"
+                          ? "bg-red-100 text-red-700"
+                          : type === "done"
+                          ? "bg-green-100 text-green-700"
+                          : type === "pending"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-purple-100 text-purple-700"
+                      }`}
+                    >
+                      {type === "info"
+                        ? "Informativa"
+                        : type === "alert"
+                        ? "Importante"
+                        : type === "done"
+                        ? "Completada"
+                        : type === "pending"
+                        ? "Pendiente"
+                        : "Recordatorio"}
+                    </span>
+                  </div>
+                  {isUnread && (
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  )}
                 </div>
-              </div>
 
-              {/* Contenido */}
-              <div className="flex-1 p-5 flex flex-col justify-between">
-                <p className="text-gray-700 text-sm mb-4">{n.message}</p>
-                <div className="flex justify-between items-center text-xs text-gray-500">
-                  <span>{n.date}</span>
-                  <button className="text-white bg-blue-600 hover:bg-blue-700 transition-colors px-3 py-1 rounded-full font-medium">
-                    Ver más
-                  </button>
+                {/* Contenido */}
+                <div className="flex-1 p-5 flex flex-col justify-between">
+                  <p className="text-gray-700 text-sm mb-4">{notification.message}</p>
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span>{formatDate(notification.createdAt)}</span>
+                    <div className="flex gap-2">
+                      {notification.actionUrl && (
+                        <Link 
+                          href={notification.actionUrl}
+                          className="text-white bg-blue-600 hover:bg-blue-700 transition-colors px-3 py-1 rounded-full font-medium"
+                          onClick={() => markAsRead(notification.id)}
+                        >
+                          {notification.actionText || "Ver más"}
+                        </Link>
+                      )}
+                      {isUnread && (
+                        <button 
+                          onClick={() => markAsRead(notification.id)}
+                          className="text-gray-500 hover:text-gray-700 transition-colors px-2 py-1 rounded-full text-xs"
+                        >
+                          Marcar leída
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {filteredNotifications.length === 0 && (
-            <p className="text-center text-gray-600 font-medium col-span-full">
-              No hay notificaciones en esta categoría.
-            </p>
+            <div className="col-span-full text-center py-12">
+              <div className="text-6xl mb-4">🔔</div>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                {filter === "unread" 
+                  ? "¡No tienes notificaciones sin leer!" 
+                  : filter === "all"
+                  ? "No tienes notificaciones aún"
+                  : `No hay notificaciones ${filters.find(f => f.value === filter)?.label.toLowerCase()}`
+                }
+              </h3>
+              <p className="text-gray-500 mb-6">
+                {filter === "all" 
+                  ? "Las notificaciones aparecerán aquí cuando te postules a eventos, recibas actualizaciones o tengas recordatorios."
+                  : "Prueba con otro filtro o realiza alguna acción para generar notificaciones."
+                }
+              </p>
+              <div className="flex gap-3 justify-center">
+                {filter !== "all" && (
+                  <button
+                    onClick={() => setFilter("all")}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-colors"
+                  >
+                    Ver todas las notificaciones
+                  </button>
+                )}
+                <button
+                  onClick={generateDemoNotifications}
+                  className="bg-green-600 text-white px-6 py-2 rounded-full hover:bg-green-700 transition-colors"
+                >
+                  Generar notificaciones de ejemplo
+                </button>
+              </div>
+            </div>
           )}
         </section>
       </main>

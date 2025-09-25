@@ -228,6 +228,29 @@ export async function GET(request: NextRequest) {
 
     let events
     if (organizationId) {
+      let actualOrganizationId = organizationId
+      
+      // Si organizationId es "me", obtener el ID real de la organización del usuario actual
+      if (organizationId === "me") {
+        const user = await getCurrentUser()
+        if (!user) {
+          return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+        }
+        
+        const userOrg = await sql`
+          SELECT id FROM organizations WHERE "userId" = ${user.id}
+        `
+        
+        if (userOrg.length === 0) {
+          return NextResponse.json({ 
+            error: "Usuario no tiene organización asociada" 
+          }, { status: 404 })
+        }
+        
+        actualOrganizationId = userOrg[0].id
+        console.log("Resolved organizationId 'me' to:", actualOrganizationId)
+      }
+      
       // Filtrar por organización específica
       events = await sql`
         SELECT 
@@ -258,7 +281,7 @@ export async function GET(request: NextRequest) {
         FROM events e
         JOIN organizations o ON e."organizationId" = o.id
         JOIN event_categories ec ON e."categoryId" = ec.id
-        WHERE e."organizationId" = ${organizationId}
+        WHERE e."organizationId" = ${actualOrganizationId}
         ORDER BY e."createdAt" DESC
         LIMIT ${limit}
       `
