@@ -19,6 +19,7 @@ interface Event {
   id: string
   title: string
   description: string
+  organizationId: string 
   organization_name: string
   organization_verified: boolean
   city: string
@@ -40,6 +41,7 @@ interface Event {
 }
 
 interface Organization {
+  id: string  
   name: string
   description?: string
   email?: string
@@ -173,8 +175,9 @@ export default function EventDetails() {
 
       if (data.event) {
         setEvent(data.event)
-        if (data.event.organization_name) {
+        if (data.event.organizationId) {
           setOrganization({
+            id: data.event.organizationId,
             name: data.event.organization_name,
             verified: data.event.organization_verified,
             rating: 4.5,
@@ -425,9 +428,9 @@ export default function EventDetails() {
           <Button variant="outline" size="sm" className="bg-white/80 hover:bg-white">
             <Share2 className="h-4 w-4 mr-2" /> Compartir
           </Button>
-          <Button variant="outline" size="sm" className="bg-white/80 hover:bg-white">
+          {/*<Button variant="outline" size="sm" className="bg-white/80 hover:bg-white">
             <Bookmark className="h-4 w-4 mr-2" /> Guardar
-          </Button>
+          </Button>*/}
         </div>
       </motion.div>
 
@@ -523,7 +526,7 @@ export default function EventDetails() {
                     {organization.email && <p className="flex items-center gap-2"><Mail className="h-4 w-4" /> {organization.email}</p>}
                     {organization.website && <p className="flex items-center gap-2"><Globe className="h-4 w-4" /> {organization.website}</p>}
                     <Separator className="my-4" />
-                    <Button variant="outline" onClick={() => router.push(`/organizaciones/${event.organization_name}`)}>Ver perfil completo</Button>
+                    <Button variant="outline" onClick={() => router.push(`/organizaciones/${organization.id}`)}>Ver perfil completo</Button>
                   </div>
                 )}
               </TabsContent>

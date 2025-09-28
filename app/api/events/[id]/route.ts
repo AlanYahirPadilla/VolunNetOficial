@@ -237,6 +237,7 @@ export async function PUT(
       updatedAt: updatedEvent.updatedAt,
       latitude: updatedEvent.latitude,
       longitude: updatedEvent.longitude,
+      organizationId: updatedEvent.organizationId, //SOLO AGREGE ESTA LINEA ---------------
       organization_name: updatedEvent.organization?.name || 'Sin organización',
       organization_verified: updatedEvent.organization?.verified || false,
       category_name: updatedEvent.category?.name || 'Sin categoría',

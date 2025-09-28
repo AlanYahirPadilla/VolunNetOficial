@@ -382,21 +382,21 @@ export default function HomePage() {
               {
                 name: "María González",
                 role: "Voluntaria",
-                image: "/placeholder.svg?height=100&width=100",
+                image: "/avatars/avatar7.png/",
                 quote:
                   "VolunNet me ha permitido encontrar oportunidades de voluntariado que realmente coinciden con mis intereses y disponibilidad. ¡La plataforma es increíblemente intuitiva!",
               },
               {
                 name: "Fundación Ayuda",
                 role: "Organización",
-                image: "/placeholder.svg?height=100&width=100",
+                image: "/avatars/avatarO3.png/",
                 quote:
                   "Desde que usamos VolunNet, hemos aumentado nuestra base de voluntarios en un 200%. La plataforma nos ha ayudado a conectar con personas realmente comprometidas.",
               },
               {
                 name: "Carlos Méndez",
                 role: "Voluntario",
-                image: "/placeholder.svg?height=100&width=100",
+                image: "/avatars/avatar3.png/",
                 quote:
                   "Las recomendaciones personalizadas son asombrosas. Cada evento sugerido se alinea perfectamente con mis habilidades y los horarios que tengo disponibles.",
               },

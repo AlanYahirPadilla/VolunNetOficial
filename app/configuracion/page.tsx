@@ -338,52 +338,82 @@ export default function ConfiguracionPage() {
   }
 
   const handleChangePassword = async () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setError("Las contraseñas no coinciden")
-      return
-    }
-
-    if (passwordData.newPassword.length < 8) {
-      setError("La nueva contraseña debe tener al menos 8 caracteres")
-      return
-    }
-
-    setSaving(true)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setSuccess("Contraseña cambiada correctamente")
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      })
-    } catch (error) {
-      setError("Error al cambiar la contraseña")
-    } finally {
-      setSaving(false)
-    }
+  if (passwordData.newPassword !== passwordData.confirmPassword) {
+    setError("Las contraseñas no coinciden")
+    return
   }
+
+  if (passwordData.newPassword.length < 8) {
+    setError("La nueva contraseña debe tener al menos 8 caracteres")
+    return
+  }
+
+  setSaving(true)
+  setError(null)
+  setSuccess(null)
+
+  try {
+    const res = await fetch("/api/user/change-password", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      })
+    })
+
+    let data: any = {}
+    try {
+      data = await res.json()
+    } catch {
+      data = {}
+    }
+
+    if (!res.ok) throw new Error(data.error || "Error al cambiar la contraseña")
+
+    setSuccess(data.message || "Contraseña cambiada correctamente")
+    setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" })
+  } catch (error: any) {
+    setError(error.message)
+  } finally {
+    setSaving(false)
+  }
+}
+
 
   const handleDeleteAccount = async () => {
-    if (!confirm('¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.')) {
-      return
-    }
-
-    setSaving(true)
-    setError(null)
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      router.push('/')
-    } catch (error) {
-      setError("Error al eliminar la cuenta")
-    } finally {
-      setSaving(false)
-    }
+  if (!confirm("¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.")) {
+    return
   }
+
+  setSaving(true)
+  setError(null)
+  setSuccess(null)
+
+  try {
+    const res = await fetch("/api/user/delete", {
+      method: "DELETE",
+    })
+
+    let data: any = {}
+    try {
+      data = await res.json()
+    } catch {
+      data = {}
+    }
+
+    if (!res.ok) throw new Error(data.error || "Error al eliminar la cuenta")
+
+    setSuccess(data.message || "Cuenta eliminada correctamente")
+
+    // Redirigir al inicio después de borrar
+    router.push("/")
+  } catch (error: any) {
+    setError(error.message)
+  } finally {
+    setSaving(false)
+  }
+}
 
   const handleSendEmailVerification = async () => {
     setVerifyingEmail(true)
@@ -630,10 +660,6 @@ export default function ConfiguracionPage() {
             <TabsTrigger value="perfil" className="flex items-center gap-2">
               <UserIcon className="h-4 w-4" />
               Perfil
-            </TabsTrigger>
-            <TabsTrigger value="notificaciones" className="flex items-center gap-2">
-              <BellIcon className="h-4 w-4" />
-              Notificaciones
             </TabsTrigger>
             <TabsTrigger value="privacidad" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />

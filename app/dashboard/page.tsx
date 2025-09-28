@@ -23,6 +23,10 @@ import { ApplicationStatusBadge } from "@/components/ui/application-status-badge
 import { SimpleRecommendations } from "@/components/dashboard/SimpleRecommendations"
 import { AIEnhancedRecommendations } from "@/components/dashboard/AIEnhancedRecommendations"
 import { DebugRecommendations } from "@/components/dashboard/DebugRecommendations"
+import { ChatNotificationManager } from "@/components/notifications/ChatNotificationManager"
+import { NotificationTest } from "@/components/notifications/NotificationTest"
+import { NotificationDebugPanel } from "@/components/notifications/NotificationDebugPanel"
+import { MessageSimulator } from "@/components/notifications/MessageSimulator"
 
 interface Event {
   id: string
@@ -571,6 +575,10 @@ const handleEventClick = async (event: Event) => {
   return (
 <DashboardErrorBoundary>
       <AdaptiveLoading type="dashboard" isLoading={loading} loadingSteps={loadingSteps}>
+        <ChatNotificationManager />
+        <NotificationTest />
+        <NotificationDebugPanel />
+        <MessageSimulator />
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
         <div className="sticky top-0 z-30 bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">

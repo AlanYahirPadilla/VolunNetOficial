@@ -43,6 +43,7 @@ interface Event {
   currentVolunteers: number
   maxVolunteers: number
   status: string
+  organization_id: string
 }
 
 export default function OrganizationProfile() {
@@ -51,6 +52,7 @@ export default function OrganizationProfile() {
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (params.id) {
@@ -61,76 +63,24 @@ export default function OrganizationProfile() {
   const fetchOrganizationDetails = async () => {
     try {
       setLoading(true)
+      setError(null)
       
-      // Mock data - en producción esto vendría de la API
-      const mockOrganization: Organization = {
-        id: params.id as string,
-        name: "EcoMar Jalisco",
-        description: "Organización dedicada a la conservación del medio ambiente y la promoción de actividades sostenibles en la región de Jalisco. Trabajamos con voluntarios comprometidos para crear un impacto positivo en nuestras comunidades.",
-        email: "contacto@ecomarjalisco.org",
-        phone: "+52 33 1234 5678",
-        website: "www.ecomarjalisco.org",
-        verified: true,
-        rating: 4.5,
-        totalEvents: 15,
-        city: "Guadalajara",
-        state: "Jalisco",
-        country: "México",
-        address: "Av. Vallarta 1234, Col. Americana",
-        founded: "2020",
-        mission: "Promover la conservación ambiental y el desarrollo sostenible a través de la participación ciudadana y la educación ambiental.",
-        vision: "Ser la organización líder en la promoción de prácticas sostenibles y la conservación del medio ambiente en Jalisco.",
-        categories: ["Medio Ambiente", "Educación", "Salud", "Arte y Cultura"],
-        totalVolunteers: 245,
-        totalHours: 1847
+      // Llamada real a la API para obtener la organización
+      const orgResponse = await fetch(`/api/organizations/${params.id}`)
+      if (!orgResponse.ok) {
+        throw new Error('Organización no encontrada')
       }
+      const organizationData = await orgResponse.json()
+      
+      // Llamada real a la API para obtener los eventos de la organización
+      const eventsResponse = await fetch(`/api/organizations/${params.id}/events`)
+      const eventsData = eventsResponse.ok ? await eventsResponse.json() : []
 
-      const mockEvents: Event[] = [
-        {
-          id: "1",
-          title: "Limpieza de Playa Vallarta",
-          description: "Actividad de limpieza en la playa principal de Puerto Vallarta",
-          startDate: "2025-08-15T18:55:00Z",
-          endDate: "2025-08-15T22:00:00Z",
-          city: "Puerto Vallarta",
-          state: "Jalisco",
-          category_name: "Medio Ambiente",
-          currentVolunteers: 8,
-          maxVolunteers: 20,
-          status: "ACTIVE"
-        },
-        {
-          id: "2",
-          title: "Taller de Programación para Niños",
-          description: "Enseñanza básica de programación a niños de primaria",
-          startDate: "2025-08-18T18:55:00Z",
-          endDate: "2025-08-18T22:00:00Z",
-          city: "Guadalajara",
-          state: "Jalisco",
-          category_name: "Educación",
-          currentVolunteers: 3,
-          maxVolunteers: 10,
-          status: "ACTIVE"
-        },
-        {
-          id: "3",
-          title: "Clínica de Salud Comunitaria",
-          description: "Proporcionar servicios básicos de salud y orientación médica",
-          startDate: "2025-08-23T18:55:00Z",
-          endDate: "2025-08-23T22:00:00Z",
-          city: "Tlaquepaque",
-          state: "Jalisco",
-          category_name: "Salud",
-          currentVolunteers: 9,
-          maxVolunteers: 12,
-          status: "ACTIVE"
-        }
-      ]
-
-      setOrganization(mockOrganization)
-      setEvents(mockEvents)
+      setOrganization(organizationData)
+      setEvents(eventsData)
     } catch (error) {
       console.error("Error fetching organization details:", error)
+      setError(error instanceof Error ? error.message : 'Error desconocido')
     } finally {
       setLoading(false)
     }
@@ -148,17 +98,21 @@ export default function OrganizationProfile() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-3 text-gray-600">Cargando organización...</span>
+        <div className="flex items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">Cargando organización...</span>
+        </div>
       </div>
     )
   }
 
-  if (!organization) {
+  if (error || !organization) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Organización no encontrada</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            {error || 'Organización no encontrada'}
+          </h2>
           <Button onClick={() => router.push("/eventos/buscar")}>
             Volver a buscar eventos
           </Button>
@@ -227,21 +181,25 @@ export default function OrganizationProfile() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-5 w-5 ${i < Math.floor(organization.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                        />
-                      ))}
+                  {organization.rating && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-5 w-5 ${i < Math.floor(organization.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-lg text-gray-600">({organization.rating})</span>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-gray-600">{organization.totalEvents || 0} eventos organizados</span>
                     </div>
-                    <span className="text-lg text-gray-600">({organization.rating})</span>
-                    <span className="text-gray-400">•</span>
-                    <span className="text-gray-600">{organization.totalEvents} eventos organizados</span>
-                  </div>
+                  )}
 
-                  <p className="text-lg text-gray-700 leading-relaxed mb-6">{organization.description}</p>
+                  {organization.description && (
+                    <p className="text-lg text-gray-700 leading-relaxed mb-6">{organization.description}</p>
+                  )}
 
                   {/* Información de contacto */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -275,57 +233,71 @@ export default function OrganizationProfile() {
             </motion.div>
 
             {/* Misión y Visión */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl shadow-lg border border-blue-50 p-8"
-            >
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Misión y Visión</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Award className="h-5 w-5 text-blue-500" />
-                    Misión
-                  </h3>
-                  <p className="text-gray-700 leading-relaxed">{organization.mission}</p>
-                </div>
+            {(organization.mission || organization.vision) && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-white rounded-2xl shadow-lg border border-blue-50 p-8"
+              >
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Misión y Visión</h2>
                 
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Star className="h-5 w-5 text-yellow-500" />
-                    Visión
-                  </h3>
-                  <p className="text-gray-700 leading-relaxed">{organization.vision}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {organization.mission && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Award className="h-5 w-5 text-blue-500" />
+                        Misión
+                      </h3>
+                      <p className="text-gray-700 leading-relaxed">{organization.mission}</p>
+                    </div>
+                  )}
+                  
+                  {organization.vision && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Star className="h-5 w-5 text-yellow-500" />
+                        Visión
+                      </h3>
+                      <p className="text-gray-700 leading-relaxed">{organization.vision}</p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
 
             {/* Estadísticas */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white rounded-2xl shadow-lg border border-blue-50 p-8"
-            >
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Impacto en la Comunidad</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">{organization.totalEvents}</div>
-                  <div className="text-gray-600">Eventos Organizados</div>
+            {(organization.totalEvents || organization.totalVolunteers || organization.totalHours) && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white rounded-2xl shadow-lg border border-blue-50 p-8"
+              >
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Impacto en la Comunidad</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {organization.totalEvents && (
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-3xl font-bold text-blue-600 mb-2">{organization.totalEvents}</div>
+                      <div className="text-gray-600">Eventos Organizados</div>
+                    </div>
+                  )}
+                  {organization.totalVolunteers && (
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-3xl font-bold text-green-600 mb-2">{organization.totalVolunteers}</div>
+                      <div className="text-gray-600">Voluntarios Participantes</div>
+                    </div>
+                  )}
+                  {organization.totalHours && (
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <div className="text-3xl font-bold text-purple-600 mb-2">{organization.totalHours}</div>
+                      <div className="text-gray-600">Horas de Servicio</div>
+                    </div>
+                  )}
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-3xl font-bold text-green-600 mb-2">{organization.totalVolunteers}</div>
-                  <div className="text-gray-600">Voluntarios Participantes</div>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-3xl font-bold text-purple-600 mb-2">{organization.totalHours}</div>
-                  <div className="text-gray-600">Horas de Servicio</div>
-                </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
 
             {/* Categorías */}
             {organization.categories && organization.categories.length > 0 && (
@@ -366,12 +338,14 @@ export default function OrganizationProfile() {
                   </div>
                 )}
                 
-                <div>
-                  <p className="text-sm text-gray-500">Ubicación</p>
-                  <p className="font-medium text-gray-900">
-                    {organization.city}, {organization.state}
-                  </p>
-                </div>
+                {(organization.city || organization.state) && (
+                  <div>
+                    <p className="text-sm text-gray-500">Ubicación</p>
+                    <p className="font-medium text-gray-900">
+                      {organization.city}{organization.city && organization.state ? ', ' : ''}{organization.state}
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <p className="text-sm text-gray-500">Estado de verificación</p>
@@ -392,41 +366,44 @@ export default function OrganizationProfile() {
             </motion.div>
 
             {/* Eventos recientes */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="bg-white rounded-2xl shadow-lg border border-blue-50 p-6"
-            >
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Eventos Recientes</h3>
-              <div className="space-y-3">
-                {events.slice(0, 3).map((event) => (
-                  <div key={event.id} className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-                    <h4 className="font-medium text-gray-900 text-sm">{event.title}</h4>
-                    <p className="text-xs text-gray-600">{event.city} • {formatDate(event.startDate)}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="outline" className="text-xs">
-                        {event.category_name}
-                      </Badge>
-                      <span className="text-xs text-gray-500">
-                        {event.currentVolunteers}/{event.maxVolunteers} voluntarios
-                      </span>
+            {events.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="bg-white rounded-2xl shadow-lg border border-blue-50 p-6"
+              >
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Eventos Recientes</h3>
+                <div className="space-y-3">
+                  {events.slice(0, 3).map((event) => (
+                    <div key={event.id} className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+                         onClick={() => router.push(`/eventos/${event.id}`)}>
+                      <h4 className="font-medium text-gray-900 text-sm">{event.title}</h4>
+                      <p className="text-xs text-gray-600">{event.city} • {formatDate(event.startDate)}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge variant="outline" className="text-xs">
+                          {event.category_name}
+                        </Badge>
+                        <span className="text-xs text-gray-500">
+                          {event.currentVolunteers}/{event.maxVolunteers} voluntarios
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              <Button variant="outline" className="w-full mt-4">
-                Ver todos los eventos
-              </Button>
-            </motion.div>
+                  ))}
+                </div>
+                {events.length > 3 && (
+                  <Button variant="outline" className="w-full mt-4">
+                    Ver todos los eventos
+                  </Button>
+                )}
+              </motion.div>
+            )}
           </div>
         </div>
       </div>
     </div>
   )
 }
-
-
 
 
 

@@ -12,6 +12,9 @@ import { MessageCircle, Users, Send, ArrowLeft } from 'lucide-react'
 import { getCurrentUser } from '@/app/auth/actions'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { WhatsAppStyleMenu } from '@/components/chat/WhatsAppStyleMenu'
+import { WhatsAppStyleChat } from '@/components/chat/WhatsAppStyleChat'
+import { WhatsAppStyleChatList } from '@/components/chat/WhatsAppStyleChatList'
 
 interface Chat {
   id: string
@@ -269,320 +272,120 @@ export default function ComunidadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-100 py-12">
-      <div className="container mx-auto px-4">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-center text-gray-800 mb-2">
-            Comunidad VolunNet
-          </h1>
-          <p className="text-center text-gray-600">
-            Conecta con otros voluntarios y organizaciones
-          </p>
-        </div>
+    <div className="min-h-screen bg-gray-100">
+      {/* Menú superior estilo WhatsApp */}
+      <WhatsAppStyleMenu user={user} currentPage="comunidad" />
+      
+      {/* Layout principal estilo WhatsApp */}
+      <div className="flex h-[calc(100vh-64px)]">
+        {/* Sidebar de chats */}
+        <div className="w-1/3 border-r border-gray-200 bg-white">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <TabsList className="grid w-full grid-cols-2 m-4 mb-0">
+              <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
+              <TabsTrigger value="chats">Chats</TabsTrigger>
+            </TabsList>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="usuarios">Todos los Usuarios</TabsTrigger>
-            <TabsTrigger value="chats">Mis Chats</TabsTrigger>
-          </TabsList>
-
-          {/* Tab de Usuarios */}
-          <TabsContent value="usuarios" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            {/* Tab de Usuarios */}
+            <TabsContent value="usuarios" className="flex-1 p-4">
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                   <Users className="h-5 w-5" />
                   Todos los Usuarios
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </h2>
+                
                 {allUsers.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No hay usuarios disponibles</p>
                   </div>
                 ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {allUsers.map((user) => (
-                      <Card key={user.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-3 mb-3">
+                  <ScrollArea className="h-[calc(100vh-200px)]">
+                    <div className="space-y-3">
+                      {allUsers.map((user) => (
+                        <div
+                          key={user.id}
+                          className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => createChat(user.id)}
+                        >
+                          <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
                               <AvatarImage src={user.avatar} />
-                              <AvatarFallback>
+                              <AvatarFallback className="bg-blue-500 text-white">
                                 {user.firstName?.[0]}{user.lastName?.[0]}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
+                            <div className="flex-1">
                               <h3 className="font-medium text-gray-900">
                                 {user.firstName} {user.lastName}
                               </h3>
                               <p className="text-sm text-gray-500">{user.email}</p>
+                              <div className="mt-1">
+                                <Badge variant={user.role === 'VOLUNTEER' ? 'default' : 'secondary'} className="text-xs">
+                                  {user.role === 'VOLUNTEER' ? 'Voluntario' : 'Organización'}
+                                </Badge>
+                              </div>
                             </div>
-                          </div>
-                          
-                          <div className="mb-3">
-                            <Badge variant={user.role === 'VOLUNTEER' ? 'default' : 'secondary'}>
-                              {user.role === 'VOLUNTEER' ? 'Voluntario' : 'Organización'}
-                            </Badge>
-                          </div>
-
-                          {user.volunteer && (
-                            <div className="mb-3">
-                              <p className="text-sm text-gray-600 mb-2">{user.volunteer.bio}</p>
-                              {user.volunteer.skills && user.volunteer.skills.length > 0 && (
-                                <div className="flex flex-wrap gap-1">
-                                  {user.volunteer.skills.slice(0, 3).map((skill: string) => (
-                                    <Badge key={skill} variant="outline" className="text-xs">
-                                      {skill}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {user.organization && (
-                            <div className="mb-3">
-                              <p className="text-sm font-medium text-gray-900">{user.organization.name}</p>
-                              <p className="text-sm text-gray-600">{user.organization.description}</p>
-                            </div>
-                          )}
-                          
-                          <Button 
-                            size="sm" 
-                            className="w-full bg-blue-600 hover:bg-blue-700"
-                            onClick={() => createChat(user.id)}
-                          >
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            Contactar
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Tab de Chats */}
-          <TabsContent value="chats" className="mt-6">
-            {selectedChat ? (
-              <div className="space-y-4">
-                {/* Header del chat */}
-                <div className="flex items-center gap-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedChat(null)}
-                    className="flex items-center gap-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Volver a chats
-                  </Button>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={getOtherParticipant(selectedChat)?.user.avatar} />
-                      <AvatarFallback>
-                        {getOtherParticipant(selectedChat)?.user.firstName?.[0]}
-                        {getOtherParticipant(selectedChat)?.user.lastName?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h2 className="font-semibold">
-                        {getOtherParticipant(selectedChat)?.user.firstName} {getOtherParticipant(selectedChat)?.user.lastName}
-                      </h2>
-                      <p className="text-sm text-gray-500 flex items-center gap-2">
-                        {otherUserTyping ? (
-                          <span className="flex items-center gap-1 text-green-500">
-                            <div className="flex space-x-1">
-                              <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce"></div>
-                              <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                              <div className="w-1 h-1 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                            </div>
-                            escribiendo...
-                          </span>
-                        ) : (
-                          <>
-                            Chat activo
-                            {isUpdating && (
-                              <span className="flex items-center gap-1 text-blue-500">
-                                <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-500"></div>
-                                Actualizando...
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Interfaz de chat */}
-                <Card className="h-[600px] flex flex-col">
-                  <CardContent className="flex-1 p-0 flex flex-col overflow-hidden">
-                    {/* Mensajes */}
-                    <div className="flex-1 overflow-hidden">
-                      <ScrollArea className="h-full p-4">
-                        <div className="space-y-4 pb-4">
-                          {messages.map((message) => (
-                            <div
-                              key={message.id}
-                              className={`flex items-end gap-3 ${
-                                message.senderId === user?.id ? 'justify-end' : 'justify-start'
-                              }`}
+                            <Button 
+                              size="sm" 
+                              className="bg-blue-500 hover:bg-blue-600 text-white"
                             >
-                              {message.senderId !== user?.id && (
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={message.sender?.avatar} />
-                                  <AvatarFallback>
-                                    {message.sender?.firstName?.[0]}{message.sender?.lastName?.[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                              )}
-                              <div
-                                className={`max-w-[70%] p-3 rounded-lg shadow-md ${
-                                  message.senderId === user?.id
-                                    ? 'bg-blue-600 text-white rounded-br-none'
-                                    : 'bg-gray-100 text-gray-800 rounded-bl-none'
-                                }`}
-                              >
-                                {message.senderId !== user?.id && (
-                                  <p className="text-xs font-semibold mb-1">
-                                    {message.sender?.firstName} {message.sender?.lastName}
-                                  </p>
-                                )}
-                                <p className="text-sm">{message.content}</p>
-                                <p className="text-xs opacity-70 mt-1">
-                                  {format(new Date(message.createdAt), 'HH:mm', { locale: es })}
-                                </p>
-                              </div>
-                              {message.senderId === user?.id && (
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={user?.avatar} />
-                                  <AvatarFallback>
-                                    {user?.firstName?.[0]}{user?.lastName?.[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                              )}
-                            </div>
-                          ))}
-
-                          {/* Indicador de escritura del otro usuario */}
-                          {otherUserTyping && (
-                            <div className="flex items-end gap-3 justify-start">
-                              <Avatar className="h-8 w-8">
-                                <AvatarFallback>
-                                  {getOtherParticipant(selectedChat)?.user.firstName?.[0]}
-                                  {getOtherParticipant(selectedChat)?.user.lastName?.[0]}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="bg-gray-100 text-gray-800 rounded-lg rounded-bl-none p-3 shadow-md">
-                                <div className="flex items-center gap-1">
-                                  <div className="flex space-x-1">
-                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                                  </div>
-                                  <span className="text-xs text-gray-500 ml-2">escribiendo...</span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Elemento invisible para auto-scroll */}
-                          <div ref={messagesEndRef} />
-                        </div>
-                      </ScrollArea>
-                    </div>
-
-                    {/* Input de mensaje */}
-                    <div className="p-4 border-t">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Escribe un mensaje..."
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              sendMessage()
-                            }
-                          }}
-                          className="flex-1"
-                        />
-                        <Button onClick={sendMessage} disabled={!newMessage.trim() || isSending}>
-                          {isSending ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          ) : (
-                            <Send className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageCircle className="h-5 w-5" />
-                    Mis Chats
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {chats.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No tienes chats aún</p>
-                      <p className="text-sm">Ve a "Todos los Usuarios" para contactar a alguien</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {chats.map((chat) => {
-                        const otherParticipant = getOtherParticipant(chat)
-                        const lastMessage = getLastMessage(chat)
-                        
-                        return (
-                          <div
-                            key={chat.id}
-                            className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                            onClick={() => setSelectedChat(chat)}
-                          >
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={otherParticipant?.user.avatar} />
-                                <AvatarFallback>
-                                  {otherParticipant?.user.firstName?.[0]}
-                                  {otherParticipant?.user.lastName?.[0]}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1">
-                                <h3 className="font-medium">
-                                  {otherParticipant?.user.firstName} {otherParticipant?.user.lastName}
-                                </h3>
-                                {lastMessage && (
-                                  <p className="text-sm text-gray-500 truncate">
-                                    {lastMessage.content}
-                                  </p>
-                                )}
-                              </div>
-                              {lastMessage && (
-                                <div className="text-xs text-gray-400">
-                                  {format(new Date(lastMessage.createdAt), 'p', { locale: es })}
-                                </div>
-                              )}
-                            </div>
+                              <MessageCircle className="h-4 w-4" />
+                            </Button>
                           </div>
-                        )
-                      })}
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+                  </ScrollArea>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Tab de Chats */}
+            <TabsContent value="chats" className="flex-1">
+              <WhatsAppStyleChatList 
+                chats={chats}
+                user={user}
+                onChatSelect={setSelectedChat}
+                onCreateChat={() => setActiveTab('usuarios')}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Área principal de chat */}
+        <div className="flex-1">
+          {selectedChat ? (
+            <WhatsAppStyleChat
+              chat={selectedChat}
+              user={user}
+              onBack={() => setSelectedChat(null)}
+              onSendMessage={async (content: string) => {
+                const response = await fetch(`/api/chat/${selectedChat.id}/messages`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({ content, type: 'DIRECT' })
+                })
+                if (!response.ok) throw new Error('Error enviando mensaje')
+              }}
+              isSending={isSending}
+              otherUserTyping={otherUserTyping}
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center bg-gray-100">
+              <div className="text-center">
+                <MessageCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-gray-600 mb-2">
+                  Selecciona un chat
+                </h2>
+                <p className="text-gray-500">
+                  Elige una conversación de la lista o contacta a un nuevo usuario
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

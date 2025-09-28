@@ -267,7 +267,7 @@ export async function getCurrentUser() {
 
     // Obtener datos actualizados del usuario
     const users = await sql`
-      SELECT id, email, "firstName", "lastName", role, verified, active
+      SELECT id, email, "firstName", "lastName", role, verified, active, avatar
       FROM users 
       WHERE id = ${payload.userId} AND active = true
     `
@@ -286,6 +286,7 @@ export async function getCurrentUser() {
       lastName: user.lastName,
       role: user.role,
       verified: user.verified,
+      avatar: user.avatar,
     }
   } catch (error) {
     console.error("Error getting current user:", error)

@@ -133,67 +133,62 @@ export default function EventSearchPage() {
   try {
     setLoading(true)
     const params = new URLSearchParams()
+    
+    // Filtros
     if (filters.query) params.append("query", filters.query)
     if (filters.city) params.append("city", filters.city)
     if (filters.state) params.append("state", filters.state)
     if (filters.category && filters.category !== "all") params.append("category", filters.category)
-    // 👆 Quitamos limit y upcomingOnly para traer TODOS los publicados
+    if (filters.onlyVerified) params.append("onlyVerified", "1")
+    if (filters.onlyAvailable) params.append("onlyAvailable", "1")
 
-    const response = await fetch(`/api/eventos?${params.toString()}`)
-    if (response.ok) {
-      let data = await response.json()
+    const response = await fetch(`/api/eventos/buscar?${params.toString()}`)
+    if (!response.ok) throw new Error("Error al cargar eventos")
+    
+    let data = await response.json()
 
-      if (!Array.isArray(data)) {
-        if (data && typeof data === 'object' && data.events && Array.isArray(data.events)) {
-          data = data.events
-        } else if (data && typeof data === 'object' && data.data && Array.isArray(data.data)) {
-          data = data.data
-        } else {
-          setEvents([])
-          return
-        }
-      }
-
-      if (filters.onlyVerified) data = data.filter((event: Event) => event.organization_verified)
-      if (filters.onlyAvailable) data = data.filter((event: Event) => event.currentVolunteers < event.maxVolunteers)
-      if (filters.skills.length > 0) data = data.filter((event: Event) => filters.skills.some(skill => event.skills.includes(skill)))
-
-      // ordenamiento
-      data.sort((a: Event, b: Event) => {
-        switch (sortBy) {
-          case "date": return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-          case "volunteers": return b.currentVolunteers - a.currentVolunteers
-          case "title": return a.title.localeCompare(b.title)
-          default: return 0
-        }
-      })
-
-      // verificar si ya aplicó el usuario
-      const eventsWithApplicationStatus = await Promise.all(
-        data.map(async (event: Event) => {
-          try {
-            const checkResponse = await fetch(`/api/events/apply?eventId=${event.id}`)
-            if (checkResponse.ok) {
-              const checkData = await checkResponse.json()
-              return {
-                ...event,
-                hasApplied: checkData.hasApplied,
-                applicationStatus: checkData.application?.status
-              }
-            }
-          } catch (error) {}
-          return event
-        })
-      )
-      
-      setEvents(eventsWithApplicationStatus)
+    // Asegurar que sea un array
+    if (!Array.isArray(data)) {
+      data = data.events || data.data || []
     }
+
+    // Ordenamiento
+    data.sort((a: Event, b: Event) => {
+      switch (sortBy) {
+        case "date": return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+        case "volunteers": return b.currentVolunteers - a.currentVolunteers
+        case "title": return a.title.localeCompare(b.title)
+        default: return 0
+      }
+    })
+
+    // Verificar si ya aplicó el usuario
+    const eventsWithApplicationStatus = await Promise.all(
+      data.map(async (event: Event) => {
+        try {
+          const checkResponse = await fetch(`/api/events/apply?eventId=${event.id}`)
+          if (checkResponse.ok) {
+            const checkData = await checkResponse.json()
+            return {
+              ...event,
+              hasApplied: checkData.hasApplied,
+              applicationStatus: checkData.application?.status
+            }
+          }
+        } catch (error) {}
+        return event
+      })
+    )
+
+    setEvents(eventsWithApplicationStatus)
   } catch (error) {
     console.error("Error fetching events:", error)
+    setEvents([])
   } finally {
     setLoading(false)
   }
 }
+
 
   const handleApply = async (event: Event) => {
     if (!user) {
@@ -372,13 +367,14 @@ export default function EventSearchPage() {
                 onChange={(e) => setFilters(prev => ({ ...prev, query: e.target.value }))}
                 className="pl-12 pr-32 py-4 text-lg border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl shadow-lg"
               />
-              <Button 
-                onClick={fetchEvents}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 rounded-lg font-semibold shadow-lg"
-                size="sm"
-              >
-                Buscar
+             <Button 
+             onClick={fetchEvents}
+             className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 rounded-lg font-semibold shadow-lg"
+             size="sm"
+             >
+              Buscar
               </Button>
+
             </div>
 
             <div className="mt-4 text-center">

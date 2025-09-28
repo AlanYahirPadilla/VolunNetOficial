@@ -11,6 +11,10 @@ import { getCurrentUser } from "@/app/auth/actions"
 import { ChatList } from "@/components/chat/ChatList"
 import { ChatInterface } from "@/components/chat/ChatInterface"
 import { ChatInvitations } from "@/components/chat/ChatInvitations"
+import { ChatNotificationManager } from "@/components/notifications/ChatNotificationManager"
+import { NotificationTest } from "@/components/notifications/NotificationTest"
+import { NotificationDebugPanel } from "@/components/notifications/NotificationDebugPanel"
+import { MessageSimulator } from "@/components/notifications/MessageSimulator"
 
 // Forzar que esta página sea dinámica
 export const dynamic = 'force-dynamic'
@@ -84,7 +88,7 @@ const mockStats = {
   averageRating: 4.5,
 }
 
-function UserMenu({ organizationName, organizationEmail }: { organizationName: string, organizationEmail: string }) {
+function UserMenu({ organizationName, organizationEmail , organizationAvatar}: { organizationName: string, organizationEmail: string  , organizationAvatar?: string}) {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -105,8 +109,23 @@ function UserMenu({ organizationName, organizationEmail }: { organizationName: s
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition"
       >
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-          {organizationName?.[0] || 'O'}
+        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+          {organizationAvatar ? (
+            <img 
+              src={organizationAvatar} 
+              alt="Avatar organización" 
+              className="w-full h-full object-cover rounded-full"
+              onError={(e) => {
+                // Si la imagen falla al cargar, mostrar la inicial
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const parent = target.parentElement!;
+                parent.innerHTML = organizationName?.[0] || 'O';
+              }}
+            />
+          ) : (
+            organizationName?.[0] || 'O'
+          )}
         </div>
         <span className="text-sm font-medium text-gray-700">{organizationName}</span>
         <Settings className="h-4 w-4 text-gray-500" />
@@ -168,6 +187,7 @@ function OrganizadorDashboardContent() {
   const [tab, setTab] = useState("mis-eventos")
   const [organizationName, setOrganizationName] = useState(mockOrganization.name)
   const [organizationEmail, setOrganizationEmail] = useState("")
+  const [organizationAvatar, setOrganizationAvatar] = useState("") // Agregado estado para avatar
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -182,11 +202,21 @@ function OrganizadorDashboardContent() {
   const searchParams = useSearchParams()
   
   useEffect(() => {
-    (async () => {
+        const fetchUserData = async () => {
+    try {
       const user = await getCurrentUser()
       if (user?.firstName) setOrganizationName(user.firstName)
       if (user?.email) setOrganizationEmail(user.email)
-    })()
+      if ((user as any)?.avatar) {
+        console.log("Avatar found in user data:", (user as any).avatar)
+        setOrganizationAvatar((user as any).avatar)
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+    }
+  }
+
+  fetchUserData()
   }, [])
 
   // Detectar el parámetro tab de la URL y cambiar la pestaña automáticamente
@@ -419,6 +449,10 @@ function OrganizadorDashboardContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
+      <ChatNotificationManager />
+      <NotificationTest />
+      <NotificationDebugPanel />
+      <MessageSimulator />
       {/* Header superior */}
       <div className="sticky top-0 z-30 bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
@@ -481,7 +515,7 @@ function OrganizadorDashboardContent() {
             {/* Separador visual */}
             <div className="w-px h-8 bg-gray-200 mx-2" />
             {/* Avatar usuario con menú */}
-            <UserMenu organizationName={organizationName} organizationEmail={organizationEmail} />
+            <UserMenu organizationName={organizationName} organizationEmail={organizationEmail} organizationAvatar={organizationAvatar}/>
           </div>
         </div>
       </div>
@@ -499,8 +533,16 @@ function OrganizadorDashboardContent() {
               transition={{ duration: 0.5 }}
             >
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold mb-3">
-                  {organizationName?.[0] || 'O'}
+                <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xl font-bold mb-3">
+                  {organizationAvatar ? (
+                    <img 
+                      src={organizationAvatar} 
+                      alt="Avatar de organización" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{organizationName?.[0] || 'O'}</span>
+                  )}
                 </div>
                 <div className="bg-purple-100 text-purple-700 text-xs px-3 py-1 rounded-full font-semibold mb-2">
                   Organizador
@@ -562,7 +604,7 @@ function OrganizadorDashboardContent() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </div>
 
           {/* Columna central: Tabs */}
           <div className="space-y-6">
