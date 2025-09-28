@@ -256,6 +256,8 @@ export class ChatService {
   // Obtener mensajes de un chat
   async getChatMessages(chatId: string, limit: number = 50, offset: number = 0) {
     try {
+      console.log('🔍 Obteniendo mensajes para chat:', chatId)
+      
       const messages = await prisma.chatMessage.findMany({
         where: {
           chatId,
@@ -276,9 +278,38 @@ export class ChatService {
         skip: offset
       })
 
-      return messages.reverse() // Ordenar de más antiguo a más reciente
+      console.log('📨 Mensajes encontrados:', messages.length)
+      
+      // Procesar mensajes para incluir reacciones de metadata si no hay campo reactions
+      const processedMessages = messages.map(msg => {
+        let reactions = {}
+        
+        // Intentar obtener reacciones del campo reactions (si existe)
+        if (msg.reactions && typeof msg.reactions === 'object') {
+          reactions = msg.reactions as { [emoji: string]: string[] }
+          console.log('📊 Reacciones del campo reactions:', reactions)
+        }
+        // Si no hay reactions, intentar obtener de metadata
+        else if (msg.metadata && typeof msg.metadata === 'object') {
+          const metadata = msg.metadata as any
+          if (metadata.reactions) {
+            reactions = metadata.reactions
+            console.log('📊 Reacciones del campo metadata:', reactions)
+          }
+        }
+        
+        return {
+          ...msg,
+          reactions: reactions
+        }
+      })
+
+      console.log('✅ Mensajes procesados:', processedMessages.length)
+      return processedMessages.reverse() // Ordenar de más antiguo a más reciente
     } catch (error) {
-      console.error('Error getting chat messages:', error)
+      console.error('❌ Error getting chat messages:', error)
+      console.error('❌ Error details:', error instanceof Error ? error.message : String(error))
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
       throw error
     }
   }

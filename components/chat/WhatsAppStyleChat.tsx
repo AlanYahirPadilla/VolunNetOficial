@@ -133,30 +133,31 @@ export function WhatsAppStyleChat({
         const data = await response.json()
         const newMessages = data.messages || []
         
-        // Preservar reacciones locales si existen
-        setMessages(prevMessages => {
-          const messageMap = new Map()
+        console.log('📨 Mensajes cargados del servidor:', newMessages.length)
+        
+        // Procesar reacciones de cada mensaje
+        const processedMessages = newMessages.map((msg: any) => {
+          let reactions = {}
           
-          // Crear mapa de mensajes nuevos
-          newMessages.forEach((msg: any) => {
-            messageMap.set(msg.id, msg)
-          })
+          // Intentar obtener reacciones del campo reactions
+          if (msg.reactions && typeof msg.reactions === 'object') {
+            reactions = msg.reactions
+            console.log('📊 Reacciones del campo reactions:', reactions)
+          }
+          // Si no hay reactions, intentar obtener de metadata
+          else if (msg.metadata && typeof msg.metadata === 'object' && msg.metadata.reactions) {
+            reactions = msg.metadata.reactions
+            console.log('📊 Reacciones del campo metadata:', reactions)
+          }
           
-          // Preservar reacciones locales que no están en el servidor
-          prevMessages.forEach(prevMsg => {
-            if (messageMap.has(prevMsg.id)) {
-              const serverMsg = messageMap.get(prevMsg.id)
-              // Si el mensaje local tiene reacciones y el servidor no, preservar las locales
-              if (prevMsg.reactions && Object.keys(prevMsg.reactions).length > 0) {
-                if (!serverMsg.reactions || Object.keys(serverMsg.reactions).length === 0) {
-                  serverMsg.reactions = prevMsg.reactions
-                }
-              }
-            }
-          })
-          
-          return newMessages
+          return {
+            ...msg,
+            reactions: reactions
+          }
         })
+        
+        console.log('✅ Mensajes procesados con reacciones:', processedMessages.length)
+        setMessages(processedMessages)
       }
     } catch (error) {
       console.error('Error cargando mensajes:', error)
@@ -225,17 +226,14 @@ export function WhatsAppStyleChat({
         const data = await response.json()
         console.log('Reacción actualizada:', data)
         
-        // Actualizar el estado local de mensajes
+        // Actualizar el estado local de mensajes inmediatamente
         setMessages(prev => prev.map(msg => 
           msg.id === messageId 
             ? { ...msg, reactions: data.reactions }
             : msg
         ))
         
-        // Recargar mensajes después de un pequeño delay para sincronizar con el servidor
-        setTimeout(() => {
-          loadMessages()
-        }, 1000)
+        console.log('✅ Estado local actualizado con reacciones:', data.reactions)
       } else {
         console.error('Error actualizando reacción:', response.statusText)
       }
