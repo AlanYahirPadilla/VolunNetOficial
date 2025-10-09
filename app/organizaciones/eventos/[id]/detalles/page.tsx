@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Heart, MapPin, Calendar, Users, Clock, Building, Star, ArrowLeft, Share2, Bookmark, Phone, Mail, Globe, Edit, Users as UsersIcon, CheckCircle } from "lucide-react"
+import Link from "next/link"
+import { Heart, MapPin, Calendar, Users, Clock, Building, Star, ArrowLeft, Share2, Bookmark, Phone, Mail, Globe, Edit, Users as UsersIcon, CheckCircle, Home, Bell, MessageCircle, Settings, TrendingUp, Award, Target, Zap, Eye, BarChart3, Activity, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -50,6 +51,88 @@ interface Organization {
   totalEvents?: number
 }
 
+function UserMenu({ organizationName, organizationEmail, organizationAvatar }: { organizationName: string, organizationEmail: string, organizationAvatar?: string }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition"
+      >
+        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+          {organizationAvatar ? (
+            <img 
+              src={organizationAvatar} 
+              alt="Avatar organización" 
+              className="w-full h-full object-cover rounded-full"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const parent = target.parentElement!;
+                parent.innerHTML = organizationName?.[0] || 'O';
+              }}
+            />
+          ) : (
+            organizationName?.[0] || 'O'
+          )}
+        </div>
+        <span className="text-sm font-medium text-gray-700">{organizationName}</span>
+        <Settings className="h-4 w-4 text-gray-500" />
+      </button>
+
+      {isOpen && (
+        <motion.div
+          className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+        >
+          <div className="px-4 py-2 border-b border-gray-100">
+            <p className="text-sm font-medium text-gray-900">{organizationName}</p>
+            <p className="text-xs text-gray-500">{organizationEmail}</p>
+          </div>
+          <Link href="/organizaciones/perfil" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Perfil
+          </Link>
+          <Link href="/notificaciones" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Notificaciones
+          </Link>
+          <Link href="/organizaciones/comunidad" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Comunidad
+          </Link>
+          <Link href="/organizaciones/configuracion" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Configuración
+          </Link>
+          <div className="border-t border-gray-100 mt-2 pt-2">
+            <button 
+              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST" })
+                window.location.href = "/"
+              }}
+            >
+              Cerrar Sesión
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  )
+}
+
 export default function OrganizadorEventDetails() {
   const params = useParams()
   const router = useRouter()
@@ -59,14 +142,26 @@ export default function OrganizadorEventDetails() {
   const [user, setUser] = useState<any>(null)
   const [isEventOwner, setIsEventOwner] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [organizationName, setOrganizationName] = useState("")
+  const [organizationEmail, setOrganizationEmail] = useState("")
+  const [organizationAvatar, setOrganizationAvatar] = useState("")
 
   useEffect(() => {
     const loadUser = async () => {
-      const currentUser = await getCurrentUser()
-      if (currentUser && currentUser.role === 'ORGANIZATION') {
-        setUser(currentUser)
-      } else {
-        router.push('/login')
+      try {
+        const currentUser = await getCurrentUser()
+        if (currentUser && currentUser.role === 'ORGANIZATION') {
+          setUser(currentUser)
+          if (currentUser.firstName) setOrganizationName(currentUser.firstName)
+          if (currentUser.email) setOrganizationEmail(currentUser.email)
+          if ((currentUser as any)?.avatar) {
+            setOrganizationAvatar((currentUser as any).avatar)
+          }
+        } else {
+          router.push('/login')
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error)
       }
     }
     loadUser()
@@ -249,145 +344,322 @@ export default function OrganizadorEventDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
+      {/* Header superior con navegación completa */}
+      <div className="sticky top-0 z-30 bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <Heart className="h-8 w-8 text-blue-600 fill-blue-200" />
+            <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">VolunNet</span>
+          </div>
+          
+          {/* Navegación - Oculto en móviles pequeños */}
+          <div className="hidden md:flex items-center gap-6">
+            <nav className="flex gap-2 text-gray-600 text-sm font-medium">
+              <Link 
+                href="/organizaciones/dashboard" 
+                className="flex items-center gap-1 px-3 py-1 rounded-lg transition group relative hover:text-blue-700 hover:bg-blue-50"
+              >
+                <Home className="h-5 w-5 group-hover:text-blue-700 transition" />
+                <span>Inicio</span>
+              </Link>
+              <Link 
+                href="/notificaciones" 
+                className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative"
+              >
+                <Bell className="h-5 w-5 group-hover:text-blue-700 transition" />
+                <span>Notificaciones</span>
+              </Link>
+              <Link 
+                href="/organizaciones/comunidad" 
+                className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group"
+              >
+                <MessageCircle className="h-5 w-5 group-hover:text-blue-700 transition" />
+                <span>Comunidad</span>
+              </Link>
+              <Link 
+                href="/organizaciones/eventos-finalizados" 
+                className="flex items-center gap-1 px-3 py-1 rounded-lg transition group relative hover:text-blue-700 hover:bg-blue-50"
+              >
+                <CheckCircle className="h-5 w-5 transition group-hover:text-blue-700" />
+                <span>Eventos Finalizados</span>
+              </Link>
+            </nav>
+            {/* Separador visual */}
+            <div className="w-px h-8 bg-gray-200 mx-2" />
+            {/* Avatar usuario con menú */}
+            <UserMenu organizationName={organizationName} organizationEmail={organizationEmail} organizationAvatar={organizationAvatar}/>
+          </div>
+
+          {/* Menú móvil - Solo avatar en pantallas pequeñas */}
+          <div className="md:hidden">
+            <UserMenu organizationName={organizationName} organizationEmail={organizationEmail} organizationAvatar={organizationAvatar}/>
+          </div>
+        </div>
+      </div>
+
+      {/* Header específico de la página */}
+      <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="sm" onClick={handleBackToDashboard} className="flex items-center space-x-2">
                 <ArrowLeft className="h-4 w-4" />
-                <span>Volver al Dashboard</span>
+                <span className="hidden sm:inline">Volver al Dashboard</span>
+                <span className="sm:hidden">Volver</span>
               </Button>
             </div>
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
                 <Heart className="h-6 w-6 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">Detalles del Evento</h1>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Detalles del Evento</h1>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={handleEditEvent}>
+              <Button variant="outline" size="sm" onClick={handleEditEvent} className="hidden sm:flex">
                 <Edit className="h-4 w-4 mr-2" />
                 Editar
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleEditEvent} className="sm:hidden">
+                <Edit className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Columna principal */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Información del evento */}
+            {/* Información del evento - Diseño mejorado */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl shadow-lg border border-blue-50 p-8"
+              className="relative bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 rounded-3xl shadow-xl border border-blue-100/50 p-6 sm:p-10 hover:shadow-2xl transition-all duration-500 overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{event.category_icon}</span>
-                  <Badge className={event.category_color}>
-                    {event.category_name}
-                  </Badge>
-                  {getStatusBadge(event.status)}
+              {/* Elementos decorativos de fondo */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-200/20 to-purple-200/20 rounded-full -translate-y-16 translate-x-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-green-200/20 to-blue-200/20 rounded-full translate-y-12 -translate-x-12"></div>
+              
+              {/* Header con badges mejorados */}
+              <div className="relative flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl shadow-lg">
+                    <span className="text-3xl">{event.category_icon}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Badge className={`${event.category_color} px-4 py-2 text-sm font-semibold shadow-md hover:shadow-lg transition-shadow`}>
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      {event.category_name}
+                    </Badge>
+                    {getStatusBadge(event.status)}
+                  </div>
+                </div>
+                <div className="hidden sm:flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="hover:bg-blue-50">
+                    <Eye className="h-4 w-4 mr-2" />
+                    Vista previa
+                  </Button>
+                  <Button variant="outline" size="sm" className="hover:bg-green-50">
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Compartir
+                  </Button>
                 </div>
               </div>
 
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">{event.title}</h1>
-              <p className="text-gray-600 text-lg mb-6">{event.description}</p>
+              {/* Título y descripción mejorados */}
+              <div className="relative mb-8">
+                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-4 leading-tight">
+                  {event.title}
+                </h1>
+                <p className="text-gray-700 text-lg sm:text-xl leading-relaxed max-w-4xl">
+                  {event.description}
+                </p>
+              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-blue-500" />
-                  <div>
-                    <p className="font-medium text-gray-900">{formatDate(event.startDate)}</p>
-                    <p className="text-sm text-gray-600">{formatTime(event.startDate)} - {formatTime(event.endDate)}</p>
+              {/* Grid de información simplificado */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500 rounded-lg">
+                      <Calendar className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">{formatDate(event.startDate)}</p>
+                      <p className="text-xs text-gray-600">{formatTime(event.startDate)} - {formatTime(event.endDate)}</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-green-500" />
-                  <div>
-                    <p className="font-medium text-gray-900">{event.city}, {event.state}</p>
-                    <p className="text-sm text-gray-600">{event.address}</p>
+                <div className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-500 rounded-lg">
+                      <MapPin className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">{event.city}, {event.state}</p>
+                      <p className="text-xs text-gray-600">{event.address}</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <Users className="h-5 w-5 text-purple-500" />
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {event.currentVolunteers}/{event.maxVolunteers} voluntarios
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {event.maxVolunteers - event.currentVolunteers} cupos disponibles
-                    </p>
+                <div className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-500 rounded-lg">
+                      <Users className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">
+                        {event.currentVolunteers}/{event.maxVolunteers} voluntarios
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        {event.maxVolunteers - event.currentVolunteers} cupos disponibles
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-orange-500" />
-                  <div>
-                    <p className="font-medium text-gray-900">{getTimeUntilEvent(event.startDate)}</p>
-                    <p className="text-sm text-gray-600">Tiempo restante</p>
+                <div className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-500 rounded-lg">
+                      <Clock className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">{getTimeUntilEvent(event.startDate)}</p>
+                      <p className="text-xs text-gray-600">Tiempo restante</p>
+                    </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Barra de progreso simplificada */}
+              <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-blue-600" />
+                    Progreso de Voluntarios
+                  </h3>
+                  <span className="text-sm font-semibold text-gray-600">
+                    {Math.round((event.currentVolunteers / event.maxVolunteers) * 100)}% completado
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                  <div 
+                    className="bg-blue-500 h-3 rounded-full transition-all duration-500"
+                    style={{ width: `${(event.currentVolunteers / event.maxVolunteers) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs text-gray-600">
+                  <span>{event.currentVolunteers} voluntarios registrados</span>
+                  <span>{event.maxVolunteers - event.currentVolunteers} cupos disponibles</span>
                 </div>
               </div>
             </motion.div>
 
-            {/* Detalles del evento */}
+            {/* Detalles del evento - Diseño mejorado */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-2xl shadow-lg border border-blue-50 p-8"
+              className="relative bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 rounded-3xl shadow-xl border border-purple-100/50 p-6 sm:p-10 hover:shadow-2xl transition-all duration-500 overflow-hidden"
             >
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Detalles del Evento</h2>
+              {/* Elementos decorativos */}
+              <div className="absolute top-0 left-0 w-28 h-28 bg-gradient-to-br from-purple-200/20 to-pink-200/20 rounded-full -translate-y-14 -translate-x-14"></div>
+              <div className="absolute bottom-0 right-0 w-20 h-20 bg-gradient-to-tr from-blue-200/20 to-purple-200/20 rounded-full translate-y-10 translate-x-10"></div>
               
-              {event.skills && event.skills.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Habilidades requeridas</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {event.skills.map((skill, index) => (
-                      <Badge key={index} variant="secondary" className="text-sm">
-                        {skill}
-                      </Badge>
-                    ))}
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="p-3 bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl shadow-lg">
+                    <Target className="h-6 w-6 text-purple-600" />
                   </div>
+                  <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-800 to-pink-800 bg-clip-text text-transparent">
+                    Detalles del Evento
+                  </h2>
                 </div>
-              )}
+                
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Habilidades requeridas */}
+                  {event.skills && event.skills.length > 0 && (
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-purple-100/50">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                          <Zap className="h-5 w-5 text-white" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">Habilidades Requeridas</h3>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {event.skills.map((skill, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.3 + index * 0.1 }}
+                          >
+                            <Badge variant="secondary" className="px-3 py-1 text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200 hover:shadow-md transition-shadow">
+                              {skill}
+                            </Badge>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-              {event.requirements && event.requirements.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Requisitos</h3>
-                  <ul className="space-y-2">
-                    {event.requirements.map((requirement, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="text-blue-500 mt-1">•</span>
-                        <span className="text-gray-700">{requirement}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                  {/* Requisitos */}
+                  {event.requirements && event.requirements.length > 0 && (
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-green-100/50">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
+                          <CheckCircle className="h-5 w-5 text-white" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">Requisitos</h3>
+                      </div>
+                      <ul className="space-y-3">
+                        {event.requirements.map((requirement, index) => (
+                          <motion.li 
+                            key={index} 
+                            className="flex items-start gap-3"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.4 + index * 0.1 }}
+                          >
+                            <div className="w-2 h-2 bg-gradient-to-r from-green-500 to-green-600 rounded-full mt-2 flex-shrink-0"></div>
+                            <span className="text-gray-700 text-sm leading-relaxed">{requirement}</span>
+                          </motion.li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
-              {event.benefits && event.benefits.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Beneficios</h3>
-                  <ul className="space-y-2">
-                    {event.benefits.map((benefit, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="text-green-500 mt-1">✓</span>
-                        <span className="text-gray-700">{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {/* Beneficios */}
+                  {event.benefits && event.benefits.length > 0 && (
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-orange-100/50">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
+                          <Award className="h-5 w-5 text-white" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">Beneficios</h3>
+                      </div>
+                      <ul className="space-y-3">
+                        {event.benefits.map((benefit, index) => (
+                          <motion.li 
+                            key={index} 
+                            className="flex items-start gap-3"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.5 + index * 0.1 }}
+                          >
+                            <div className="w-2 h-2 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full mt-2 flex-shrink-0"></div>
+                            <span className="text-gray-700 text-sm leading-relaxed">{benefit}</span>
+                          </motion.li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </motion.div>
 
             {/* Control de estado del evento */}
@@ -434,20 +706,23 @@ export default function OrganizadorEventDetails() {
             )}
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar mejorado */}
           <div className="space-y-6">
-            {/* Acciones rápidas */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white rounded-2xl shadow-lg border border-blue-50 p-6"
-            >
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Acciones Rápidas</h3>
+            {/* Acciones rápidas - Simplificado */}
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Zap className="h-5 w-5 text-green-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Acciones Rápidas
+                </h3>
+              </div>
+              
               <div className="space-y-3">
                 <Button 
                   onClick={handleManageApplications}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3"
                 >
                   <UsersIcon className="h-4 w-4 mr-2" />
                   Gestionar Postulaciones
@@ -456,63 +731,82 @@ export default function OrganizadorEventDetails() {
                 <Button 
                   variant="outline"
                   onClick={handleEditEvent}
-                  className="w-full"
+                  className="w-full border-gray-300 hover:bg-gray-50 py-3"
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Editar Evento
                 </Button>
-              </div>
-            </motion.div>
-
-            {/* Información de la organización */}
-            {organization && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="bg-white rounded-2xl shadow-lg border border-blue-50 p-6"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <Building className="h-6 w-6 text-blue-500" />
-                  <h3 className="text-lg font-bold text-gray-900">Tu Organización</h3>
-                  {organization.verified && (
-                    <Badge className="bg-blue-100 text-blue-700 text-xs">
-                      Verificada
-                    </Badge>
-                  )}
-                </div>
-
-                <h4 className="font-semibold text-gray-900 mb-2">{organization.name}</h4>
                 
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-4 w-4 ${i < Math.floor(organization.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-sm text-gray-600">({organization.rating})</span>
-                </div>
+                <Button 
+                  variant="outline"
+                  className="w-full border-gray-300 hover:bg-gray-50 py-3"
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Ver Estadísticas
+                </Button>
+              </div>
+            </div>
 
-                <div className="text-sm text-gray-600">
-                  <p>{organization.totalEvents} eventos organizados</p>
-                  {organization.email && (
-                    <p className="flex items-center gap-2 mt-1">
-                      <Mail className="h-4 w-4" />
-                      {organization.email}
-                    </p>
-                  )}
+            {/* Estadísticas simplificadas */}
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Activity className="h-5 w-5 text-blue-600" />
                 </div>
-              </motion.div>
-            )}
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Estadísticas
+                </h3>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500 rounded-lg">
+                        <Users className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Voluntarios</p>
+                        <p className="text-lg font-semibold text-gray-900">{event.currentVolunteers}/{event.maxVolunteers}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Progreso</p>
+                      <p className="text-sm font-semibold text-blue-600">
+                        {Math.round((event.currentVolunteers / event.maxVolunteers) * 100)}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-500 rounded-lg">
+                      <Calendar className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Estado</p>
+                      <div className="text-sm font-semibold text-gray-900">{getStatusBadge(event.status)}</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-500 rounded-lg">
+                      <MapPin className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Ubicación</p>
+                      <p className="text-sm font-semibold text-gray-900">{event.city}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   )
 }
-
-
-

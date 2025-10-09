@@ -280,14 +280,16 @@ export function AIEnhancedRecommendations({
     return (
       <div className={`space-y-4 ${className}`}>
         {showHeader && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Brain className="h-5 w-5 text-purple-600" />
-              <h3 className="text-lg font-semibold">Recomendaciones por IA</h3>
-              <Sparkles className="h-4 w-4 text-yellow-500" />
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                <h3 className="text-sm sm:text-lg font-semibold">Recomendaciones por IA</h3>
+                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
+              </div>
             </div>
-            <Button variant="outline" size="sm" disabled>
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            <Button variant="outline" size="sm" disabled className="w-full sm:w-auto">
+              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
               Analizando...
             </Button>
           </div>
@@ -340,23 +342,23 @@ export function AIEnhancedRecommendations({
     return (
       <div className={`space-y-4 ${className}`}>
         {showHeader && (
-          <div className="flex items-center space-x-2">
-            <Brain className="h-5 w-5 text-purple-600" />
-            <h3 className="text-lg font-semibold">Recomendaciones por IA</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+            <h3 className="text-sm sm:text-lg font-semibold">Recomendaciones por IA</h3>
           </div>
         )}
         
         <Card className="border-dashed border-2 border-gray-300">
-          <CardContent className="p-6 text-center">
-            <Brain className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h4 className="text-lg font-semibold text-gray-600 mb-2">
+          <CardContent className="p-4 sm:p-6 text-center">
+            <Brain className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+            <h4 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">
               No hay recomendaciones disponibles
             </h4>
-            <p className="text-gray-500 mb-4">
+            <p className="text-sm sm:text-base text-gray-500 mb-4">
               La IA no encontró eventos que coincidan con tu perfil actual.
             </p>
-            <Button onClick={loadAIRecommendations} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button onClick={loadAIRecommendations} variant="outline" size="sm" className="w-full sm:w-auto">
+              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               Actualizar
             </Button>
           </CardContent>
@@ -368,17 +370,19 @@ export function AIEnhancedRecommendations({
   return (
     <div className={`space-y-4 ${className}`}>
       {showHeader && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Brain className="h-5 w-5 text-purple-600" />
-            <h3 className="text-lg font-semibold">Recomendaciones por IA</h3>
-            <Sparkles className="h-4 w-4 text-yellow-500" />
-            <Badge variant="secondary" className="ml-2">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+              <h3 className="text-sm sm:text-lg font-semibold">Recomendaciones por IA</h3>
+              <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
+            </div>
+            <Badge variant="secondary" className="text-xs">
               {recommendations.length} eventos
             </Badge>
           </div>
-          <Button onClick={loadAIRecommendations} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <Button onClick={loadAIRecommendations} variant="outline" size="sm" className="w-full sm:w-auto">
+            <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
             Actualizar
           </Button>
         </div>

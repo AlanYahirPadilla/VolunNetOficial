@@ -14,6 +14,8 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { getCurrentUser } from "@/app/auth/actions"
 import { EventCompletionButton } from "@/components/EventCompletionButton"
+import { BottomNavigation } from "@/components/ui/bottom-navigation"
+import { MobileNavigation } from "@/components/ui/mobile-navigation"
 
 interface Event {
   id: string
@@ -163,11 +165,13 @@ export default function EventDetails() {
   }, [])
 
   useEffect(() => {
-    if (params.id) fetchEventDetails()
+    if (params?.id) fetchEventDetails()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.id, user])
+  }, [params?.id, user])
 
   const fetchEventDetails = async () => {
+    if (!params?.id) return
+    
     try {
       setLoading(true)
       const response = await fetch(`/api/events/${params.id}`)
@@ -321,14 +325,14 @@ export default function EventDetails() {
   const isVolunteer = user?.role === "VOLUNTEER"
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* --- HEADER MODERNO (reemplaza el NAV anterior) --- */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pb-nav-mobile">
+      {/* Header responsive mejorado */}
       <div className="sticky top-0 z-30 bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-3 py-2 md:px-4">
           {/* izquierda: botón volver + logo */}
           <div className="flex items-center gap-2">
             <button
-              className="flex items-center gap-2 focus:outline-none"
+              className="p-1 hover:bg-gray-100 rounded-lg transition"
               onClick={() => router.back()}
               title="Volver"
             >
@@ -336,65 +340,61 @@ export default function EventDetails() {
             </button>
 
             <button
-              className="flex items-center gap-2 focus:outline-none"
+              className="flex items-center gap-1 md:gap-2"
               onClick={() => router.push("/dashboard")}
               title="Ir al inicio"
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
             >
-              <Heart className="h-8 w-8 text-blue-600 fill-blue-200" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">VolunNet</span>
+              <Heart className="h-6 w-6 md:h-8 md:w-8 text-blue-600 fill-blue-200" />
+              <span className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">VolunNet</span>
             </button>
           </div>
 
-          {/* barra de búsqueda */}
-          <div className="flex-1 mx-8 max-w-xl">
+          {/* barra de búsqueda - oculta en móvil */}
+          <div className="hidden lg:flex flex-1 mx-8 max-w-xl">
             <input
               type="text"
-              placeholder="Buscar eventos, iglesias..."
-              className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-gray-50 text-gray-700 shadow-sm"
+              placeholder="Buscar eventos..."
+              className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-gray-50 text-sm"
             />
           </div>
 
-          {/* navegación y usermenu */}
-          <div className="flex items-center gap-6">
-            <nav className="flex gap-2 text-gray-600 text-sm font-medium">
-              <Link href="/dashboard" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative">
-                <Home className="h-5 w-5 group-hover:text-blue-700 transition" />
-                <span>Inicio</span>
-                <span className="absolute left-0 -bottom-0.5 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
-              </Link>
-              <Link href="/eventos/buscar" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative">
-                <Calendar className="h-5 w-5 group-hover:text-blue-700 transition" />
-                <span>Eventos</span>
-                <span className="absolute left-0 -bottom-0.5 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
-              </Link>
-              <Link href="/comunidad" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative">
-                <Users className="h-5 w-5 group-hover:text-blue-700 transition" />
-                <span>Comunidad</span>
-                <span className="absolute left-0 -bottom-0.5 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
-              </Link>
-              <Link href="/notificaciones" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative">
-                <Bell className="h-5 w-5 group-hover:text-blue-700 transition" />
-                <span>Notificaciones</span>
-                <span className="absolute left-0 -bottom-0.5 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
-              </Link>
-            </nav>
+          {/* navegación - desktop only */}
+          <nav className="hidden lg:flex items-center gap-2 text-gray-600 text-sm font-medium">
+            <Link href="/dashboard" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition">
+              <Home className="h-4 w-4" />
+              <span>Inicio</span>
+            </Link>
+            <Link href="/eventos/buscar" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition">
+              <Calendar className="h-4 w-4" />
+              <span>Eventos</span>
+            </Link>
+            <Link href="/comunidad" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition">
+              <Users className="h-4 w-4" />
+              <span>Comunidad</span>
+            </Link>
+          </nav>
 
-            {/* avatar / user menu */}
-            <div className="w-px h-8 bg-gray-200 mx-2" />
+          {/* User menu desktop */}
+          <div className="hidden md:flex items-center gap-2">
+            <div className="w-px h-6 bg-gray-200" />
             <UserMenu user={user} />
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="md:hidden">
+            <MobileNavigation user={user} currentPath={params?.id ? `/eventos/${params.id}` : "/eventos"} />
           </div>
         </div>
       </div>
 
-      {/* HERO */}
+      {/* HERO - responsive */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-2xl shadow-xl overflow-hidden border border-blue-50 mb-8">
+        className="relative rounded-xl md:rounded-2xl shadow-lg overflow-hidden border border-blue-50 mb-4 md:mb-6 mx-2 md:mx-0">
         {(() => {
           const gradient = getCategoryGradient(event.category_name)
           return (
             <div
-              className="h-72 w-full relative"
+              className="h-48 md:h-72 w-full relative"
               style={{
                 background: `linear-gradient(90deg, ${gradient.from}, ${gradient.to})`
               }}
@@ -414,77 +414,73 @@ export default function EventDetails() {
               </div>
             </>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-          <div className="absolute bottom-6 left-8 text-white">
-            <h1 className="text-4xl font-bold drop-shadow-lg">{event.title}</h1>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge className={`${event.category_color} text-sm`}>{event.category_name}</Badge>
-            </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+          <div className="absolute bottom-3 md:bottom-6 left-3 md:left-8 text-white right-3 md:right-8">
+            <h1 className="text-xl md:text-4xl font-bold drop-shadow-lg mb-2">{event.title}</h1>
+            <Badge className={`${event.category_color} text-xs md:text-sm`}>{event.category_name}</Badge>
           </div>
             </div>
           )
         })()}
-        <div className="absolute top-4 right-4 flex gap-2">
-          <Button variant="outline" size="sm" className="bg-white/80 hover:bg-white">
-            <Share2 className="h-4 w-4 mr-2" /> Compartir
+        <div className="absolute top-2 md:top-4 right-2 md:right-4">
+          <Button variant="outline" size="sm" className="bg-white/90 hover:bg-white text-xs md:text-sm">
+            <Share2 className="h-3 w-3 md:h-4 md:w-4 md:mr-2" />
+            <span className="hidden md:inline">Compartir</span>
           </Button>
-          {/*<Button variant="outline" size="sm" className="bg-white/80 hover:bg-white">
-            <Bookmark className="h-4 w-4 mr-2" /> Guardar
-          </Button>*/}
         </div>
       </motion.div>
 
       {/* CONTENIDO */}
-      <div className="max-w-7xl mx-auto px-4 pb-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-3 md:px-4 pb-10 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* PRINCIPAL */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Info clave */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-center gap-3 bg-blue-50 p-4 rounded-xl">
-              <Calendar className="h-6 w-6 text-blue-600" />
-              <div>
-                <p className="font-semibold">{formatDate(event.startDate)}</p>
-                <p className="text-sm text-gray-600">{formatTime(event.startDate)} - {formatTime(event.endDate)}</p>
+        <div className="lg:col-span-2 space-y-4">
+          {/* Info clave - responsive */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+            <div className="flex items-center gap-3 bg-blue-50 p-3 rounded-xl">
+              <Calendar className="h-5 w-5 md:h-6 md:w-6 text-blue-600 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="font-semibold text-sm md:text-base truncate">{formatDate(event.startDate).split(',')[0]}</p>
+                <p className="text-xs md:text-sm text-gray-600">{formatTime(event.startDate)} - {formatTime(event.endDate)}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 bg-red-50 p-4 rounded-xl">
-              <MapPin className="h-6 w-6 text-red-600" />
-              <div>
-                <p className="font-semibold">{event.city}, {event.state}</p>
-                <p className="text-sm text-gray-600">{event.address}</p>
+            <div className="flex items-center gap-3 bg-red-50 p-3 rounded-xl">
+              <MapPin className="h-5 w-5 md:h-6 md:w-6 text-red-600 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="font-semibold text-sm md:text-base truncate">{event.city}, {event.state}</p>
+                <p className="text-xs md:text-sm text-gray-600 truncate">{event.address}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 bg-green-50 p-4 rounded-xl">
-              <Users className="h-6 w-6 text-green-600" />
-              <div>
-                <p className="font-semibold">{event.currentVolunteers}/{event.maxVolunteers} voluntarios</p>
+            <div className="flex items-center gap-3 bg-green-50 p-3 rounded-xl">
+              <Users className="h-5 w-5 md:h-6 md:w-6 text-green-600 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm md:text-base">{event.currentVolunteers}/{event.maxVolunteers} voluntarios</p>
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                   <div className="bg-green-500 h-2 rounded-full" style={{ width: `${(event.currentVolunteers / event.maxVolunteers) * 100}%` }} />
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 bg-purple-50 p-4 rounded-xl">
-              <Clock className="h-6 w-6 text-purple-600" />
+            <div className="flex items-center gap-3 bg-purple-50 p-3 rounded-xl">
+              <Clock className="h-5 w-5 md:h-6 md:w-6 text-purple-600 flex-shrink-0" />
               <div>
-                <p className="font-semibold">{getTimeUntilEvent(event.startDate)}</p>
-                <p className="text-sm text-gray-600">Tiempo restante</p>
+                <p className="font-semibold text-sm md:text-base">{getTimeUntilEvent(event.startDate)}</p>
+                <p className="text-xs md:text-sm text-gray-600">Tiempo restante</p>
               </div>
             </div>
           </div>
 
-          {/* Tabs */}
+          {/* Tabs responsive */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-lg border p-6">
+            className="bg-white rounded-xl md:rounded-2xl shadow-md border p-3 md:p-6">
             <Tabs defaultValue="detalles">
-              <TabsList className="mb-6">
-                <TabsTrigger value="detalles">Detalles</TabsTrigger>
-                <TabsTrigger value="organizacion">Organización</TabsTrigger>
-                <TabsTrigger value="similares">Similares</TabsTrigger>
+              <TabsList className="mb-4 w-full grid grid-cols-3">
+                <TabsTrigger value="detalles" className="text-xs md:text-sm">Detalles</TabsTrigger>
+                <TabsTrigger value="organizacion" className="text-xs md:text-sm">Organización</TabsTrigger>
+                <TabsTrigger value="similares" className="text-xs md:text-sm">Similares</TabsTrigger>
               </TabsList>
 
               <TabsContent value="detalles">
-                <h2 className="text-2xl font-bold mb-4">Detalles del Evento</h2>
-                <p className="text-gray-700 mb-6">{event.description}</p>
+                <h2 className="text-lg md:text-2xl font-bold mb-3 md:mb-4">Detalles del Evento</h2>
+                <p className="text-sm md:text-base text-gray-700 mb-4 md:mb-6">{event.description}</p>
                 {event.skills?.length > 0 && (
                   <div className="mb-6">
                     <h3 className="font-semibold mb-2">Habilidades</h3>
@@ -543,13 +539,13 @@ export default function EventDetails() {
           </motion.div>
         </div>
 
-        {/* SIDEBAR - Solo mostrar para voluntarios */}
+        {/* SIDEBAR - responsive */}
         {isVolunteer && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-lg border p-6 h-fit">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-bold mb-2">{hasApplied ? "Ya postulado" : "¿Quieres participar?"}</h3>
-              <p className="text-gray-600">
+            className="bg-white rounded-xl md:rounded-2xl shadow-md border p-4 md:p-6 h-fit">
+            <div className="text-center mb-4">
+              <h3 className="text-lg md:text-xl font-bold mb-2">{hasApplied ? "Ya postulado" : "¿Quieres participar?"}</h3>
+              <p className="text-sm text-gray-600">
                 {hasApplied ? "Tu postulación está en revisión" : "Únete y haz la diferencia"}
               </p>
             </div>
@@ -557,22 +553,22 @@ export default function EventDetails() {
               <Button
                 onClick={handleApply}
                 disabled={isEventFull || applying}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm md:text-base">
                 {applying ? "Postulando..." : isEventFull ? "Evento completo" : "Postularme"}
               </Button>
             )}
-            {hasApplied && <Badge className="bg-green-100 text-green-700">Postulación enviada</Badge>}
-            {isEventPast && <Badge variant="secondary">Evento finalizado</Badge>}
+            {hasApplied && <Badge className="w-full justify-center bg-green-100 text-green-700 text-sm">Postulación enviada</Badge>}
+            {isEventPast && <Badge variant="secondary" className="w-full justify-center text-sm">Evento finalizado</Badge>}
           </motion.div>
         )}
 
-        {/* SIDEBAR PARA ORGANIZADORES - Solo botón de completar evento */}
+        {/* SIDEBAR PARA ORGANIZADORES */}
         {isEventOwner && event.status === "PUBLISHED" && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-lg border p-6 h-fit">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-bold mb-2">Gestión del Evento</h3>
-              <p className="text-gray-600">Administra tu evento</p>
+            className="bg-white rounded-xl md:rounded-2xl shadow-md border p-4 md:p-6 h-fit">
+            <div className="text-center mb-4">
+              <h3 className="text-lg md:text-xl font-bold mb-2">Gestión del Evento</h3>
+              <p className="text-sm text-gray-600">Administra tu evento</p>
             </div>
             <EventCompletionButton
               eventId={event.id}
@@ -700,6 +696,9 @@ function UserMenu({ user }: { user: any }) {
           </button>
         </div>
       )}
+
+      {/* Bottom Navigation */}
+      <BottomNavigation />
     </div>
   );
 }

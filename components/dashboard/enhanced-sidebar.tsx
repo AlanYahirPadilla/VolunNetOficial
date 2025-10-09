@@ -18,6 +18,8 @@ import {
   Users,
   Award,
   Clock,
+  Bell,
+  FileText,
 } from "lucide-react"
 
 interface EnhancedSidebarProps {
@@ -43,13 +45,10 @@ const navigationItems = [
   { icon: Home, label: "Dashboard", href: "/dashboard", color: "text-blue-600" },
   { icon: Search, label: "Explorar Eventos", href: "/eventos", color: "text-green-600" },
   { icon: Calendar, label: "Mis Eventos", href: "/mis-eventos", color: "text-purple-600" },
-<<<<<<< HEAD
   { icon: Bell, label: "Notificaciones", href: "/notificaciones", color: "text-orange-600" },
   { icon: Award, label: "Calificaciones", href: "/calificaciones", color: "text-yellow-600" },
+  { icon: FileText, label: "Certificados", href: "/certificados", color: "text-teal-600" },
   { icon: Users, label: "Comunidad", href: "/comunidad", color: "text-indigo-600" },
-=======
-  { icon: Users, label: "Comunidad", href: "/comunidad", color: "text-orange-600" },
->>>>>>> ec1cbbc69193834a0a8ca358b8538c352ee8b7bb
   { icon: User, label: "Perfil", href: "/perfil", color: "text-pink-600" },
   { icon: Settings, label: "Configuración", href: "/configuracion", color: "text-gray-600" },
 ]

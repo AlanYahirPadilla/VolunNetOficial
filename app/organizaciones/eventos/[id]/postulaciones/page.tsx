@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { motion } from "framer-motion"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -20,7 +21,12 @@ import {
   User,
   Mail,
   Eye,
-  Target
+  Target,
+  Heart,
+  Home,
+  Bell,
+  MessageCircle,
+  Settings
 } from "lucide-react"
 import { getCurrentUser } from "@/app/auth/actions"
 
@@ -52,6 +58,88 @@ interface Application {
   }
 }
 
+function UserMenu({ organizationName, organizationEmail, organizationAvatar }: { organizationName: string, organizationEmail: string, organizationAvatar?: string }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition"
+      >
+        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+          {organizationAvatar ? (
+            <img 
+              src={organizationAvatar} 
+              alt="Avatar organización" 
+              className="w-full h-full object-cover rounded-full"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const parent = target.parentElement!;
+                parent.innerHTML = organizationName?.[0] || 'O';
+              }}
+            />
+          ) : (
+            organizationName?.[0] || 'O'
+          )}
+        </div>
+        <span className="text-sm font-medium text-gray-700">{organizationName}</span>
+        <Settings className="h-4 w-4 text-gray-500" />
+      </button>
+
+      {isOpen && (
+        <motion.div
+          className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+        >
+          <div className="px-4 py-2 border-b border-gray-100">
+            <p className="text-sm font-medium text-gray-900">{organizationName}</p>
+            <p className="text-xs text-gray-500">{organizationEmail}</p>
+          </div>
+          <Link href="/organizaciones/perfil" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Perfil
+          </Link>
+          <Link href="/notificaciones" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Notificaciones
+          </Link>
+          <Link href="/organizaciones/comunidad" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Comunidad
+          </Link>
+          <Link href="/organizaciones/configuracion" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Configuración
+          </Link>
+          <div className="border-t border-gray-100 mt-2 pt-2">
+            <button 
+              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST" })
+                window.location.href = "/"
+              }}
+            >
+              Cerrar Sesión
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  )
+}
+
 export default function EventoPostulacionesPage() {
   const router = useRouter()
   const params = useParams()
@@ -63,6 +151,9 @@ export default function EventoPostulacionesPage() {
   const [isEventOwner, setIsEventOwner] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [organizationName, setOrganizationName] = useState("")
+  const [organizationEmail, setOrganizationEmail] = useState("")
+  const [organizationAvatar, setOrganizationAvatar] = useState("")
 
   useEffect(() => {
     loadUser()
@@ -80,6 +171,11 @@ export default function EventoPostulacionesPage() {
       const currentUser = await getCurrentUser()
       if (currentUser) {
         setUser(currentUser)
+        if (currentUser.firstName) setOrganizationName(currentUser.firstName)
+        if (currentUser.email) setOrganizationEmail(currentUser.email)
+        if ((currentUser as any)?.avatar) {
+          setOrganizationAvatar((currentUser as any).avatar)
+        }
         if (currentUser.role !== 'ORGANIZATION') {
           router.push('/login')
           return
@@ -163,7 +259,7 @@ export default function EventoPostulacionesPage() {
   }
 
   const handleBackToEvent = () => {
-    router.push(`/organizaciones/eventos/${eventId}/gestionar`)
+    router.push(`/organizaciones/eventos/${eventId}/detalles`)
   }
 
   const handleApplicationAction = async (applicationId: string, action: 'accept' | 'reject' | 'remove') => {
@@ -270,63 +366,114 @@ export default function EventoPostulacionesPage() {
   const statusCounts = getStatusCounts()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
+      {/* Header superior con navegación completa */}
+      <div className="sticky top-0 z-30 bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <Heart className="h-8 w-8 text-blue-600 fill-blue-200" />
+            <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">VolunNet</span>
+          </div>
+          
+          {/* Navegación - Oculto en móviles pequeños */}
+          <div className="hidden md:flex items-center gap-6">
+            <nav className="flex gap-2 text-gray-600 text-sm font-medium">
+              <Link 
+                href="/organizaciones/dashboard" 
+                className="flex items-center gap-1 px-3 py-1 rounded-lg transition group relative hover:text-blue-700 hover:bg-blue-50"
+              >
+                <Home className="h-5 w-5 group-hover:text-blue-700 transition" />
+                <span>Inicio</span>
+              </Link>
+              <Link 
+                href="/notificaciones" 
+                className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative"
+              >
+                <Bell className="h-5 w-5 group-hover:text-blue-700 transition" />
+                <span>Notificaciones</span>
+              </Link>
+              <Link 
+                href="/organizaciones/comunidad" 
+                className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group"
+              >
+                <MessageCircle className="h-5 w-5 group-hover:text-blue-700 transition" />
+                <span>Comunidad</span>
+              </Link>
+            </nav>
+            {/* Separador visual */}
+            <div className="w-px h-8 bg-gray-200 mx-2" />
+            {/* Avatar usuario con menú */}
+            <UserMenu organizationName={organizationName} organizationEmail={organizationEmail} organizationAvatar={organizationAvatar}/>
+          </div>
+
+          {/* Menú móvil - Solo avatar en pantallas pequeñas */}
+          <div className="md:hidden">
+            <UserMenu organizationName={organizationName} organizationEmail={organizationEmail} organizationAvatar={organizationAvatar}/>
+          </div>
+        </div>
+      </div>
+
+      {/* Header específico de la página */}
+      <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="sm" onClick={handleBackToEvent} className="flex items-center space-x-2">
                 <ArrowLeft className="h-4 w-4" />
-                <span>Volver al Evento</span>
+                <span className="hidden sm:inline">Volver al Evento</span>
+                <span className="sm:hidden">Volver</span>
               </Button>
             </div>
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
                 <Users className="h-6 w-6 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">Gestión de Postulaciones</h1>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Gestión de Postulaciones</h1>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={handleBackToDashboard}>
+              <Button variant="outline" size="sm" onClick={handleBackToDashboard} className="hidden sm:flex">
                 Dashboard
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleBackToDashboard} className="sm:hidden">
+                <Home className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* Título del evento */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">{event.title}</h2>
           <p className="text-gray-600">Gestiona las postulaciones de voluntarios para este evento</p>
         </div>
 
-        {/* Estadísticas rápidas */}
+        {/* Estadísticas rápidas mejoradas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{statusCounts.pending}</div>
-              <div className="text-sm text-blue-600">Pendientes</div>
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-shadow">
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-blue-600 mb-2">{statusCounts.pending}</div>
+              <div className="text-sm font-medium text-blue-700">Pendientes</div>
             </CardContent>
           </Card>
-          <Card className="bg-green-50 border-green-200">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{statusCounts.accepted}</div>
-              <div className="text-sm text-green-600">Aceptadas</div>
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-shadow">
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-green-600 mb-2">{statusCounts.accepted}</div>
+              <div className="text-sm font-medium text-green-700">Aceptadas</div>
             </CardContent>
           </Card>
-          <Card className="bg-red-50 border-red-200">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-red-600">{statusCounts.rejected}</div>
-              <div className="text-sm text-red-600">Rechazadas</div>
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 hover:shadow-lg transition-shadow">
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-red-600 mb-2">{statusCounts.rejected}</div>
+              <div className="text-sm font-medium text-red-700">Rechazadas</div>
             </CardContent>
           </Card>
-          <Card className="bg-purple-50 border-purple-200">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">{statusCounts.completed}</div>
-              <div className="text-sm text-purple-600">Completadas</div>
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-lg transition-shadow">
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-purple-600 mb-2">{statusCounts.completed}</div>
+              <div className="text-sm font-medium text-purple-700">Completadas</div>
             </CardContent>
           </Card>
         </div>

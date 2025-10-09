@@ -8,7 +8,7 @@ import { EnhancedSidebar } from "@/components/dashboard/enhanced-sidebar"
 import { CustomWidgets } from "@/components/dashboard/custom-widgets"
 import { EventCard } from "@/components/dashboard/event-card"
 import { CalendarView } from "@/components/dashboard/calendar-view"
-import { Star, Heart, Home, Calendar, Users, Bell, LogOut, User, Settings, Search } from "lucide-react"
+import { Star, Heart, Home, Calendar, Users, Bell, LogOut, User, Settings, Search, FileText } from "lucide-react"
 import Link from "next/link"
 import { getPersonalizedRecommendations, getUserStats, getRecentNotifications, getRecentCompletedEvents } from "./actions"
 import { getCurrentUser } from "../auth/actions"
@@ -27,6 +27,8 @@ import { ChatNotificationManager } from "@/components/notifications/ChatNotifica
 import { NotificationTest } from "@/components/notifications/NotificationTest"
 import { NotificationDebugPanel } from "@/components/notifications/NotificationDebugPanel"
 import { MessageSimulator } from "@/components/notifications/MessageSimulator"
+import { MobileNavigation } from "@/components/ui/mobile-navigation"
+import { BottomNavigation } from "@/components/ui/bottom-navigation"
 
 interface Event {
   id: string
@@ -43,8 +45,12 @@ interface Event {
   skills: string[]
   recommendation_score?: number
   recommendation_reasons?: string[]
-hasApplied?: boolean
+  hasApplied?: boolean
   applicationStatus?: string
+  rating?: number | null
+  feedback?: string | null
+  applicationId?: string
+  formattedDate?: string
 }
 
 interface UserStats {
@@ -114,7 +120,7 @@ export default function Dashboard() {
 
  const loadMyEvents = useCallback(async () => {
   try {
-    console.log("🔄 Cargando MIS EVENTOS (solo aceptados)...")
+    console.log("🔄 Cargando MIS EVENTOS (aceptados y completados)...")
     const response = await safeFetch("/api/events/apply", { 
       credentials: "include",
       signal: abortController.current?.signal
@@ -131,11 +137,18 @@ export default function Dashboard() {
           return isAccepted
         })
         
-        console.log(`✅ APLICACIONES ACEPTADAS ENCONTRADAS: ${acceptedApplications.length}`)
+        const completedApplications = data.applications.filter((app: any) => {
+          const isCompleted = app.status === 'COMPLETED'
+          console.log(`📋 EVENTOS COMPLETADOS - App: ${app.event?.title} | Status: ${app.status} | Incluir: ${isCompleted}`)
+          return isCompleted
+        })
         
+        console.log(`✅ APLICACIONES ACEPTADAS ENCONTRADAS: ${acceptedApplications.length}`)
+        console.log(`✅ APLICACIONES COMPLETADAS ENCONTRADAS: ${completedApplications.length}`)
+        
+        // Procesar eventos aceptados (no completados)
         if (acceptedApplications.length > 0) {
           const acceptedEvents = acceptedApplications.map((app: any) => {
-            // CORRECCIÓN: Usar app.event.* en lugar de app.event_*
             const eventDate = new Date(app.event?.startDate || new Date())
             const formattedDate = eventDate.toLocaleDateString("es-ES", {
               day: "numeric",
@@ -149,7 +162,7 @@ export default function Dashboard() {
               title: app.event?.title || "Evento sin título",
               description: "Descripción del evento",
               organization_name: app.event?.organization?.name || "Organización no especificada",
-              city: "Guadalajara", // Por defecto hasta tener más datos
+              city: "Guadalajara",
               state: "Jalisco",
               start_date: app.event?.startDate || new Date().toISOString(),
               end_date: app.event?.endDate || new Date().toISOString(),
@@ -157,26 +170,67 @@ export default function Dashboard() {
               current_volunteers: 5,
               category_name: "Sin categoría",
               skills: [],
-              applicationStatus: app.status, // Será 'ACCEPTED'
+              applicationStatus: app.status,
               applicationId: app.id,
               formattedDate: formattedDate
             }
           })
           
-          console.log("🎯 EVENTOS PARA 'MIS EVENTOS':", acceptedEvents.map(e => e.title))
+          console.log("🎯 EVENTOS PARA 'MIS EVENTOS':", acceptedEvents.map((e: Event) => e.title))
           safeStateUpdate(setMyEvents, acceptedEvents)
         } else {
           console.log("📋 No hay eventos aceptados para mostrar")
           safeStateUpdate(setMyEvents, [])
         }
+
+        // Procesar eventos completados para calificaciones
+        if (completedApplications.length > 0) {
+          const completedEvents = completedApplications.map((app: any) => {
+            const eventDate = new Date(app.event?.startDate || new Date())
+            const formattedDate = eventDate.toLocaleDateString("es-ES", {
+              day: "numeric",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit"
+            })
+            
+            return {
+              id: app.event?.id || 'unknown',
+              title: app.event?.title || "Evento sin título",
+              description: "Descripción del evento",
+              organization_name: app.event?.organization?.name || "Organización no especificada",
+              city: "Guadalajara",
+              state: "Jalisco",
+              start_date: app.event?.startDate || new Date().toISOString(),
+              end_date: app.event?.endDate || new Date().toISOString(),
+              max_volunteers: 10,
+              current_volunteers: 5,
+              category_name: "Sin categoría",
+              skills: [],
+              applicationStatus: app.status, // Será 'COMPLETED'
+              applicationId: app.id,
+              formattedDate: formattedDate,
+              rating: app.rating || null, // Incluir si ya fue calificado
+              feedback: app.feedback || null
+            }
+          })
+          
+          console.log("🎯 EVENTOS COMPLETADOS PARA CALIFICAR:", completedEvents.map((e: Event) => e.title))
+          safeStateUpdate(setCompletedEvents, completedEvents)
+        } else {
+          console.log("📋 No hay eventos completados para calificar")
+          safeStateUpdate(setCompletedEvents, [])
+        }
       } else {
         console.log("📋 No hay aplicaciones")
         safeStateUpdate(setMyEvents, [])
+        safeStateUpdate(setCompletedEvents, [])
       }
     }
   } catch (error) {
     console.error("Error loading accepted events:", error)
     safeStateUpdate(setMyEvents, [])
+    safeStateUpdate(setCompletedEvents, [])
   }
 }, [])
 
@@ -274,7 +328,7 @@ const loadEventsData = useCallback(async () => {
               console.log(`✅ EVENTO ACEPTADO ID: ${eventId} | Título: ${app.event?.title}`)
               return eventId
             })
-            .filter(id => id !== undefined) // Filtrar IDs undefined
+            .filter((id: string | undefined) => id !== undefined) // Filtrar IDs undefined
           
           console.log("🚫 IDs de eventos donde fue ACEPTADO:", acceptedEventIds)
         }
@@ -313,9 +367,9 @@ const loadEventsData = useCallback(async () => {
       })
       
       console.log(`🎯 Eventos que pasaron el filtro: ${availableEvents.length}`)
-      console.log("📝 Títulos de eventos disponibles:", availableEvents.map(e => e.title))
+      console.log("📝 Títulos de eventos disponibles:", availableEvents.map((e: any) => e.title))
       
-      const processedEvents = availableEvents.map((e: any) => ({
+      const processedEvents = availableEvents.map((e: any): Event => ({
         id: e.id,
         title: e.title,
         description: e.description,
@@ -332,7 +386,7 @@ const loadEventsData = useCallback(async () => {
         applicationStatus: undefined,
       }))
       
-      console.log("🎯 EVENTOS FINALES PARA 'DISPONIBLES':", processedEvents.map(e => e.title))
+      console.log("🎯 EVENTOS FINALES PARA 'DISPONIBLES':", processedEvents.map((e: Event) => e.title))
       safeStateUpdate(setEvents, processedEvents)
       
       updateLoadingStep("events", "completed")
@@ -573,13 +627,9 @@ const handleEventClick = async (event: Event) => {
   }
 
   return (
-<DashboardErrorBoundary>
       <AdaptiveLoading type="dashboard" isLoading={loading} loadingSteps={loadingSteps}>
         <ChatNotificationManager />
-        <NotificationTest />
-        <NotificationDebugPanel />
-        <MessageSimulator />
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col pb-nav-mobile">
         <div className="sticky top-0 z-30 bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
             <div className="flex items-center gap-2">
@@ -589,18 +639,16 @@ const handleEventClick = async (event: Event) => {
                 title="Ir al inicio"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               >
-                <Heart className="h-8 w-8 text-blue-600 fill-blue-200" />
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">VolunNet</span>
+                <Heart className="h-6 w-6 md:h-8 md:w-8 text-blue-600 fill-blue-200" />
+                <span className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">VolunNet</span>
               </button>
             </div>
-            <div className="flex-1 mx-8 max-w-xl">
-              <input
-                type="text"
-                placeholder="Buscar eventos, iglesias..."
-                className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-gray-50 text-gray-700 shadow-sm"
-              />
-            </div>
-            <div className="flex items-center gap-6">
+            
+            {/* Desktop Search */}
+              
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-6">
               <nav className="flex gap-2 text-gray-600 text-sm font-medium">
                 <Link href="/dashboard" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative">
                   <Home className="h-5 w-5 group-hover:text-blue-700 transition" />
@@ -617,6 +665,11 @@ const handleEventClick = async (event: Event) => {
                   <span>Comunidad</span>
                   <span className="absolute left-0 -bottom-0.5 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
                 </Link>
+                <Link href="/certificados" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative">
+                  <FileText className="h-5 w-5 group-hover:text-blue-700 transition" />
+                  <span>Certificados</span>
+                  <span className="absolute left-0 -bottom-0.5 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full rounded-full"></span>
+                </Link>
                 <Link href="/notificaciones" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative">
                   <Bell className="h-5 w-5 group-hover:text-blue-700 transition" />
                   <span>Notificaciones</span>
@@ -629,12 +682,308 @@ const handleEventClick = async (event: Event) => {
                 </Link>
               </nav>
               <div className="w-px h-8 bg-gray-200 mx-2" />
-              <UserMenu user={user} />
+              <UserMenu user={user} unreadCount={unreadCount} />
+            </div>
+
+            {/* Mobile Navigation */}
+            <div className="md:hidden flex items-center gap-3">
+              {/* Mobile Search Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 touch-manipulation"
+                onClick={() => {
+                  window.location.href = '/eventos/buscar'
+                }}
+                aria-label="Buscar"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+
+              {/* Mobile Notifications */}
+              <Link href="/notificaciones" className="relative p-2 text-gray-600 hover:text-blue-600 transition touch-manipulation">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+                )}
+              </Link>
+
+              {/* Professional Mobile Navigation */}
+              <MobileNavigation user={user} unreadCount={unreadCount} currentPath="/dashboard" />
             </div>
           </div>
         </div>
 
-        <div className="flex-1 max-w-7xl mx-auto w-full px-2 sm:px-4 py-6 grid grid-cols-1 md:grid-cols-[minmax(0,320px)_1fr_minmax(0,320px)] gap-6">
+        <div className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 py-4 md:py-6">
+          {/* Mobile Layout */}
+          <div className="block md:hidden space-y-4">
+            {/* Mobile Profile Card */}
+            <motion.div
+              className="bg-white rounded-xl shadow-md p-4 flex items-center gap-3 border border-gray-100"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <div className="relative">
+                <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-blue-100 to-purple-100 border-2 border-white shadow-md flex items-center justify-center text-lg text-blue-500 font-bold overflow-hidden">
+                  {user?.avatar ? (
+                    <img 
+                      src={user.avatar} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    user?.firstName?.[0] || 'M'
+                  )}
+                </div>
+                <span className="absolute -bottom-1 -right-1 bg-yellow-400 text-white text-xs px-1.5 py-0.5 rounded-full shadow font-semibold border border-white">★</span>
+              </div>
+              <div className="flex-1">
+                <div className="text-base font-bold text-gray-900">{user?.firstName || 'María'} {user?.lastName || 'González'}</div>
+                <div className="text-xs text-blue-700 font-medium mb-1">{user?.role === 'VOLUNTEER' ? 'Voluntario' : user?.role || ''}</div>
+                <div className="flex gap-1 items-center">
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const rating = voluntario?.rating ?? stats?.averageRating ?? 0;
+                    const isFull = i + 1 <= Math.floor(rating);
+                    const isHalf = !isFull && i < rating;
+                    return (
+                      <span key={i} className="relative">
+                        <Star className={`h-3 w-3 ${isFull ? 'text-yellow-400 fill-yellow-300' : isHalf ? 'text-yellow-400' : 'text-gray-200'}`} />
+                        {isHalf && (
+                          <span className="absolute left-0 top-0 overflow-hidden" style={{ width: '50%' }}>
+                            <Star className="h-3 w-3 text-yellow-400 fill-yellow-300" />
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
+                  <span className="ml-1 text-yellow-600 font-semibold text-xs">{(voluntario?.rating ?? stats?.averageRating ?? 0).toFixed(1)}</span>
+                </div>
+                <div className="flex gap-3 text-xs mt-1">
+                  <div className="flex items-center gap-1">
+                    <span className="font-bold text-blue-700">{voluntario?.eventsParticipated ?? stats?.eventsParticipated ?? 0}</span>
+                    <span className="text-gray-500">eventos</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-bold text-green-700">{voluntario?.hoursCompleted ?? stats?.hoursCompleted ?? 0}h</span>
+                    <span className="text-gray-500">horas</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Mobile Tabs */}
+            <Tabs defaultValue="recomendados" className="w-full">
+              <TabsList className="w-full bg-gray-50 border rounded-xl mb-6 grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 min-h-[3rem]">
+                <TabsTrigger value="recomendados" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white flex flex-col items-center justify-center gap-0.5 text-[10px] sm:text-xs py-1.5 px-1 rounded-lg touch-manipulation">
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  <span className="font-semibold">IA</span>
+                </TabsTrigger>
+                <TabsTrigger value="disponibles" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white flex flex-col items-center justify-center text-[10px] sm:text-xs py-1.5 px-1 rounded-lg touch-manipulation font-semibold">
+                  Disponibles
+                </TabsTrigger>
+                <TabsTrigger value="mis-eventos" className="data-[state=active]:bg-green-600 data-[state=active]:text-white flex flex-col items-center justify-center text-[10px] sm:text-xs py-1.5 px-1 rounded-lg touch-manipulation font-semibold whitespace-nowrap">
+                  Mis Eventos
+                </TabsTrigger>
+                <TabsTrigger value="calificaciones" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white relative flex flex-col items-center justify-center text-[10px] sm:text-xs py-1.5 px-1 rounded-lg touch-manipulation font-semibold">
+                  Calificaciones
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="recomendados" className="pt-8">
+                <AIEnhancedRecommendations 
+                  limit={3}
+                  className="w-full"
+                />
+              </TabsContent>
+
+              <TabsContent value="disponibles" className="pt-8">
+                <div className="space-y-4">
+                  {events.slice(0, 3).map((event, idx) => (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: idx * 0.1 }}
+                      className="bg-white border border-gray-100 rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden"
+                    >
+                      <div className="p-4">
+                        <h4 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+                          {event.title}
+                        </h4>
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                          {event.description}
+                        </p>
+                        <div className="flex flex-wrap gap-2 text-xs text-gray-500 mb-3">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3 text-blue-400" />
+                            {new Date(event.start_date).toLocaleDateString('es-ES', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3 w-3 text-green-500" />
+                            {event.current_volunteers}/{event.max_volunteers}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="flex-1 rounded-full px-4 py-2 font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600"
+                            onClick={() => handleEventClick(event)}
+                          >
+                            Postular
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="rounded-full px-4 py-2 font-semibold border-gray-300 text-blue-700 hover:bg-blue-50"
+                            onClick={() => window.location.href = `/eventos/${event.id}`}
+                          >
+                            Ver
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="mis-eventos" className="pt-8">
+                <div className="space-y-4">
+                  {myEvents.length === 0 ? (
+                    <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-100 rounded-2xl shadow-inner text-center py-8 px-4">
+                      <Calendar className="h-12 w-12 text-blue-400 mx-auto mb-3 animate-pulse" />
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                        No tienes eventos inscritos
+                      </h3>
+                      <p className="text-gray-600 mb-4 text-sm">
+                        Postúlate a eventos para verlos aquí
+                      </p>
+                      <Link href="/eventos/buscar">
+                        <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full px-6 py-2 shadow-lg">
+                          <Search className="h-4 w-4 mr-2" />
+                          Buscar Eventos
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    myEvents.slice(0, 3).map((event, idx) => (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="bg-white border border-gray-100 rounded-2xl shadow-md hover:shadow-xl transition-all p-4"
+                      >
+                        <h4 className="text-lg font-bold text-gray-900 mb-2">
+                          {event.title}
+                        </h4>
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          {event.description}
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                            event.applicationStatus === "COMPLETED"
+                              ? "bg-green-100 text-green-700"
+                              : event.applicationStatus === "PENDING"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-blue-100 text-blue-700"
+                          }`}>
+                            {event.applicationStatus || "Pendiente"}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-full px-4 py-2 border-gray-300 text-blue-700 hover:bg-blue-50"
+                            onClick={() => window.location.href = `/eventos/${event.id}`}
+                          >
+                            Ver detalles
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="calificaciones" className="pt-8">
+                <div className="space-y-3">
+                  {completedEvents.length > 0 ? (
+                    completedEvents.slice(0, 3).map((event, idx) => (
+                      <motion.div
+                        key={event.id}
+                        className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900 text-sm mb-1 line-clamp-1">
+                              {event.title}
+                            </h4>
+                            <p className="text-gray-600 text-xs mb-2">
+                              {event.organization_name}
+                            </p>
+                            {event.rating ? (
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                      key={star}
+                                      className={`h-3 w-3 ${
+                                        star <= (event.rating || 0)
+                                          ? "fill-yellow-400 text-yellow-400"
+                                          : "text-gray-300"
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                  {event.rating.toFixed(1)}
+                                </span>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs rounded-full mt-1"
+                                onClick={() => {
+                                  router.push(`/calificaciones?eventId=${event.id}`)
+                                }}
+                              >
+                                Calificar evento
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <Star className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No hay eventos completados</h3>
+                      <p className="text-gray-600 text-sm">Tus eventos completados aparecerán aquí</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden md:grid grid-cols-[minmax(0,320px)_1fr_minmax(0,320px)] gap-6">
           <div className="space-y-6 w-full max-w-xs mx-auto">
             <motion.div
               className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center border border-blue-50 relative overflow-visible"
@@ -735,14 +1084,7 @@ const handleEventClick = async (event: Event) => {
                 </TabsTrigger>
                 <TabsTrigger value="disponibles" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Eventos Disponibles</TabsTrigger>
                 <TabsTrigger value="mis-eventos" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Mis Eventos</TabsTrigger>
-                <TabsTrigger value="notificaciones" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white relative">
-                  Notificaciones
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </TabsTrigger>
+                
                 <TabsTrigger value="calificaciones" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Calificaciones</TabsTrigger>
               </TabsList>
 
@@ -1046,14 +1388,6 @@ const handleEventClick = async (event: Event) => {
               >
                 Ver detalles
               </Button>
-              {event.applicationStatus !== "COMPLETED" && (
-                <Button
-                  className="rounded-full px-5 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow hover:from-blue-700 hover:to-purple-700"
-                  onClick={() => handleEventClick(event)}
-                >
-                  Gestionar
-                </Button>
-              )}
             </div>
           </div>
         </motion.div>
@@ -1168,38 +1502,101 @@ const handleEventClick = async (event: Event) => {
                     </Button>
                   </div>
                   
-                  <div className="space-y-3">
-                    {completedEvents.filter(event => event.applicationStatus === 'COMPLETED').length > 0 ? (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {completedEvents.filter(event => event.applicationStatus === 'COMPLETED' && !event.rating).length > 0 ? (
                       completedEvents
-                        .filter(event => event.applicationStatus === 'COMPLETED')
-                        .slice(0, 3)
+                        .filter(event => event.applicationStatus === 'COMPLETED' && !event.rating)
+                        .slice(0, 4)
                         .map((event, idx) => (
                           <motion.div
                             key={event.id}
-                            className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.1 }}
+                            transition={{ duration: 0.5, delay: idx * 0.1 }}
+                            whileHover={{ scale: 1.02 }}
+                            className="bg-white border border-gray-100 rounded-3xl shadow-md hover:shadow-xl transition-all overflow-hidden flex flex-col"
                           >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <h4 className="font-medium text-gray-900 text-sm mb-1">
+                            {/* Header con gradiente y patrón */}
+                            <div className="relative h-40 flex items-center justify-center" style={{ background: `linear-gradient(90deg, #fef3c7, #fed7aa, #fecaca)` }}>
+                              <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow">
+                                Calificación Pendiente
+                              </span>
+                              
+                              {/* Patrón de estrellas */}
+                              <div className="absolute inset-0 overflow-hidden">
+                                {Array.from({length:36}).map((_,i)=>{ 
+                                  const r=(s:number)=>{let x=Math.sin(s)*10000;return x-Math.floor(x)}; 
+                                  const r1=r(i+1), r2=r((i+1)*2), r3=r((i+1)*3); 
+                                  const size=16+Math.floor(r1*44); 
+                                  const left=Math.floor(r2*100); 
+                                  const top=Math.floor(r3*100); 
+                                  const opacity=0.05 + r1*0.15; 
+                                  const rotate=Math.floor((r2-0.5)*30); 
+                                  return (
+                                    <span key={i} className="absolute select-none" style={{left:`${left}%`, top:`${top}%`, fontSize:`${size}px`, opacity, transform:`translate(-50%, -50%) rotate(${rotate}deg)`}}>⭐</span>
+                                  )
+                                })}
+                              </div>
+                              
+                              {/* Ícono central */}
+                              <div className="relative text-6xl animate-pulse">⭐</div>
+                            </div>
+
+                            <div className="flex-1 p-6 flex flex-col justify-between">
+                              <div>
+                                <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-2">
                                   {event.title}
-                                </h4>
-                                <p className="text-gray-600 text-xs mb-2">
-                                  {event.organization_name} • {new Date(event.start_date).toLocaleDateString('es-ES')}
-                                </p>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
-                                    Pendiente de calificación
+                                  <span className="px-2 py-0.5 text-xs rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 text-white font-medium">
+                                    ⭐ Pendiente
                                   </span>
+                                </h4>
+                                <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                                  Evento completado - {event.organization_name}
+                                </p>
+
+                                <div className="flex flex-wrap gap-3 text-xs text-gray-500 mb-3">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-4 w-4 text-blue-400" />
+                                    {new Date(event.start_date).toLocaleDateString('es-ES', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Users className="h-4 w-4 text-green-500" />
+                                    {event.organization_name}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Home className="h-4 w-4 text-purple-500" />
+                                    Guadalajara, Jalisco
+                                  </span>
+                                </div>
+
+                                {/* Barra de progreso de calificación */}
+                                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden mb-3">
+                                  <div className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full transition-all animate-pulse" style={{ width: '100%' }} />
+                                </div>
+                              </div>
+
+                              <div className="flex justify-between items-center mt-4">
+                                <div className="flex gap-2">
                                   <Button 
                                     size="sm" 
-                                    variant="outline"
-                                    className="ml-auto"
+                                    className="rounded-full px-5 py-2 font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 shadow hover:from-blue-700 hover:to-purple-700"
                                     onClick={() => window.location.href = `/calificaciones?eventId=${event.id}`}
                                   >
+                                    <Star className="h-4 w-4 mr-1" />
                                     Calificar
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="rounded-full px-5 py-2 font-semibold border-gray-300 text-blue-700 hover:bg-blue-50"
+                                    onClick={() => window.location.href = `/eventos/${event.id}`}
+                                  >
+                                    Ver detalles
                                   </Button>
                                 </div>
                               </div>
@@ -1207,10 +1604,20 @@ const handleEventClick = async (event: Event) => {
                           </motion.div>
                         ))
                     ) : (
-                      <div className="text-center py-8">
-                        <Star className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No hay calificaciones pendientes</h3>
-                        <p className="text-gray-600">Los eventos completados aparecerán aquí para calificar</p>
+                      <div className="col-span-2 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-100 rounded-3xl shadow-inner text-center py-14 px-6">
+                        <Star className="h-20 w-20 text-blue-400 mx-auto mb-4 animate-pulse" />
+                        <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                          No hay calificaciones pendientes
+                        </h3>
+                        <p className="text-gray-600 mb-6">
+                          Los eventos completados aparecerán aquí para calificar
+                        </p>
+                        <Link href="/eventos/buscar">
+                          <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full px-8 py-3 shadow-lg">
+                            <Search className="h-4 w-4 mr-2" />
+                            Buscar Eventos
+                          </Button>
+                        </Link>
                       </div>
                       )}
                   </div>
@@ -1412,16 +1819,24 @@ const handleEventClick = async (event: Event) => {
           </div>
         </div>
       )}
+        </div>
 
-        </AdaptiveLoading>
-      </DashboardErrorBoundary>
+    </AdaptiveLoading>
   )
 }
 
-function UserMenu({ user }: { user: any }) {
+function UserMenu({ user, unreadCount = 0 }: { user: any; unreadCount?: number }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  // Función para obtener la URL de configuración basada en el rol del usuario
+  const getConfigUrl = () => {
+    if (user?.role === 'ORGANIZATION') {
+      return '/organizaciones/configuracion';
+    }
+    return '/configuracion';
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -1468,7 +1883,7 @@ function UserMenu({ user }: { user: any }) {
             Perfil
           </Link>
           <Link
-            href="/configuracion"
+            href={getConfigUrl()}
             className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
           >
             <Settings className="h-4 w-4 text-gray-500" />
@@ -1487,6 +1902,9 @@ function UserMenu({ user }: { user: any }) {
           </button>
         </div>
       )}
+
+      {/* Bottom Navigation para móvil */}
+      <BottomNavigation unreadCount={unreadCount} />
     </div>
   );
 }

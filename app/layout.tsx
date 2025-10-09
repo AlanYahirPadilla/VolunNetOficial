@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { PreloadProvider } from "@/components/ui/preload-provider"
 import { NotificationProvider } from "@/components/notifications/NotificationProvider"
+import { ErrorHandlerProvider } from "@/components/error/ErrorHandlerProvider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,9 +25,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <PreloadProvider>
-            <NotificationProvider>
-              {children}
-            </NotificationProvider>
+            <ErrorHandlerProvider>
+              <NotificationProvider>
+                {children}
+              </NotificationProvider>
+            </ErrorHandlerProvider>
           </PreloadProvider>
         </ThemeProvider>
       </body>

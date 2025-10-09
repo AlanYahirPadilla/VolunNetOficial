@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { MobileNavigation } from '@/components/ui/mobile-navigation'
 
 interface WhatsAppStyleMenuProps {
   user: any
@@ -57,16 +58,13 @@ export function WhatsAppStyleMenu({ user, currentPage = 'chat' }: WhatsAppStyleM
             title="Ir al inicio"
             onClick={() => router.push('/dashboard')}
           >
-            <Heart className="h-8 w-8 text-blue-600 fill-blue-200" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">VolunNet</span>
+            <Heart className="h-6 w-6 md:h-8 md:w-8 text-blue-600 fill-blue-200" />
+            <span className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">VolunNet</span>
           </button>
         </div>
         
-        {/* Barra de búsqueda */}
-       
-        
-        {/* Navegación */}
-        <div className="flex items-center gap-6">
+        {/* Navegación Desktop - Oculta en móvil */}
+        <div className="hidden md:flex items-center gap-6">
           <nav className="flex gap-2 text-gray-600 text-sm font-medium">
             <Link href="/dashboard" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative">
               <Home className="h-5 w-5 group-hover:text-blue-700 transition" />
@@ -154,6 +152,11 @@ export function WhatsAppStyleMenu({ user, currentPage = 'chat' }: WhatsAppStyleM
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
+
+        {/* Mobile Navigation */}
+        <div className="md:hidden">
+          <MobileNavigation user={user} currentPath="/comunidad" />
         </div>
       </div>
     </div>

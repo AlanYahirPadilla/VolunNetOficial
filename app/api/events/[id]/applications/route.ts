@@ -66,7 +66,8 @@ export async function GET(
             id: true,
             firstName: true,
             lastName: true,
-            email: true
+            email: true,
+            avatar: true
           }
         }
       },
@@ -81,7 +82,13 @@ export async function GET(
       volunteerId: app.volunteerId,
       status: app.status,
       appliedAt: app.createdAt,
-      volunteer: app.volunteer,
+      volunteer: {
+        id: app.volunteer.id,
+        firstName: app.volunteer.firstName,
+        lastName: app.volunteer.lastName,
+        email: app.volunteer.email,
+        avatar: app.volunteer.avatar
+      },
       rating: app.rating || null,
       ratingComment: app.feedback || null,
       ratingDate: app.completedAt || null

@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Heart, Users, Building } from "lucide-react"
+import { Heart, Users, Building, ArrowLeft } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function RegistroSelector() {
   const router = useRouter()
@@ -54,6 +55,36 @@ export default function RegistroSelector() {
             </motion.button>
           </div>
         </div>
+        
+        {/* Botón de regresar colorido debajo de la card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.6 }}
+          className="mt-8 flex justify-center"
+        >
+          <motion.div
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Button
+              onClick={() => router.back()}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group px-8 py-3 rounded-full"
+            >
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-blue-700 to-purple-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                initial={{ x: "-100%" }}
+                whileHover={{ x: "0%" }}
+                transition={{ duration: 0.3 }}
+              />
+              <span className="relative z-10 flex items-center font-semibold">
+                <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform duration-300" />
+                Regresar
+              </span>
+            </Button>
+          </motion.div>
+        </motion.div>
       </motion.div>
     </div>
   )

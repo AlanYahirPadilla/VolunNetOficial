@@ -18,11 +18,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Hacemos UNA SOLA consulta a la BD que incluye los datos del usuario.
+    // Hacemos UNA SOLA consulta a la BD que incluye los datos del usuario y disponibilidad.
     const volunteerProfile = await prisma.volunteer.findUnique({
       where: { userId: sessionUser.id },
       include: {
         user: true, // ¡Esta es la clave! Trae los datos frescos del usuario.
+        availability: true, // Incluir disponibilidad
       },
     });
 
@@ -74,6 +75,7 @@ export async function PUT(req: NextRequest) {
         avatar: data.profileImage || data.avatar,
       },
     });
+
     // Actualizar Volunteer
     const updated = await prisma.volunteer.update({
       where: { userId: user.id },
@@ -97,7 +99,38 @@ export async function PUT(req: NextRequest) {
         longitude: data.longitude,
       },
     });
-    return NextResponse.json({ voluntario: updated });
+
+    // Manejar disponibilidad
+    if (data.availability && Array.isArray(data.availability)) {
+      // Eliminar disponibilidad existente
+      await prisma.availability.deleteMany({
+        where: { volunteerId: updated.id }
+      });
+
+      // Crear nueva disponibilidad
+      if (data.availability.length > 0) {
+        await prisma.availability.createMany({
+          data: data.availability.map((slot: any) => ({
+            volunteerId: updated.id,
+            dayOfWeek: slot.dayOfWeek,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+          }))
+        });
+      }
+    }
+
+    // Obtener el perfil actualizado con disponibilidad
+    const volunteerWithAvailability = await prisma.volunteer.findUnique({
+      where: { userId: user.id },
+      include: {
+        user: true,
+        availability: true,
+      },
+    });
+
+    const { user: userData, ...voluntarioData } = volunteerWithAvailability!;
+    return NextResponse.json({ user: userData, voluntario: voluntarioData });
   } catch (error: any) {
     console.error('Error actualizando voluntario:', error);
     return NextResponse.json({ error: error.message || 'Error interno' }, { status: 500 });

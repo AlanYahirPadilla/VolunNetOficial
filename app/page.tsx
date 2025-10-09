@@ -2,13 +2,13 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Calendar, Heart, Shield, Zap, Globe, Menu, X } from "lucide-react"
+import { Users, Calendar, Heart, Shield, Zap, Globe } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
+import { MobileNavigation } from "@/components/ui/mobile-navigation"
 
 export default function HomePage() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -92,49 +92,12 @@ export default function HomePage() {
             </motion.div>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Professional Mobile Navigation */}
           <div className="md:hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label={isMenuOpen ? "Cerrar menú" : "Abrir menú"}
-            >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </Button>
+            <MobileNavigation currentPath="/" />
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-white border-t"
-          >
-            <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
-              {["Eventos", "Organizaciones", "Acerca de"].map((item) => (
-                <Link
-                  key={item}
-                  href={`/${item.toLowerCase().replace(" ", "-")}`}
-                  className="text-gray-700 hover:text-blue-600 transition-colors py-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item}
-                </Link>
-              ))}
-              <div className="flex flex-col space-y-2 pt-2 border-t">
-                <Button variant="outline" className="w-full" asChild>
-                  <Link href="/login">Iniciar Sesión</Link>
-                </Button>
-                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600" asChild>
-                  <Link href="/registro">Registrarse</Link>
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
       </header>
 
       {/* Hero Section with Animated Shapes */}
@@ -153,22 +116,22 @@ export default function HomePage() {
             transition={{ duration: 0.7 }}
             className="max-w-4xl mx-auto"
           >
-            <h2 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 md:mb-6 leading-tight px-4">
               Conecta con Causas que
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 {" "}
                 Importan
               </span>
             </h2>
-            <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-gray-600 mb-8 md:mb-10 max-w-2xl mx-auto px-4">
               VolunNet es la plataforma que conecta voluntarios con organizaciones, utilizando IA para recomendaciones
               personalizadas y tecnología distribuida para una experiencia óptima.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center px-4">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   size="lg"
-                  className="text-lg px-8 py-6 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/20"
+                  className="text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/20 w-full sm:w-auto"
                   asChild
                 >
                   <Link href="/registro/voluntario">Comenzar como Voluntario</Link>
@@ -178,7 +141,7 @@ export default function HomePage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="text-lg px-8 py-6 rounded-full border-2 hover:bg-blue-50 transition-colors"
+                  className="text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 rounded-full border-2 hover:bg-blue-50 transition-colors w-full sm:w-auto"
                   asChild
                 >
                   <Link href="/registro/organizacion">Registrar Organización</Link>
@@ -257,7 +220,7 @@ export default function HomePage() {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true }}
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
           >
             {[
               {
@@ -300,18 +263,18 @@ export default function HomePage() {
               <motion.div key={index} variants={item}>
                 <Card className="border-0 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full overflow-hidden group">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
-                  <CardHeader className="text-center pt-8">
+                  <CardHeader className="text-center pt-6 md:pt-8 px-4 md:px-6">
                     <motion.div
                       whileHover={{ rotate: [0, -10, 10, -10, 0] }}
                       transition={{ duration: 0.5 }}
-                      className="mx-auto mb-4 p-3 rounded-full bg-blue-50 w-20 h-20 flex items-center justify-center"
+                      className="mx-auto mb-3 md:mb-4 p-2 md:p-3 rounded-full bg-blue-50 w-16 h-16 md:w-20 md:h-20 flex items-center justify-center"
                     >
                       {feature.icon}
                     </motion.div>
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
+                    <CardTitle className="text-lg md:text-xl">{feature.title}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-gray-600 text-center">{feature.description}</CardDescription>
+                  <CardContent className="px-4 md:px-6">
+                    <CardDescription className="text-sm md:text-base text-gray-600 text-center">{feature.description}</CardDescription>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -331,7 +294,7 @@ export default function HomePage() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ staggerChildren: 0.1, delayChildren: 0.3 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 text-center"
           >
             {[
               { value: "1,000+", label: "Voluntarios Activos" },
@@ -345,18 +308,18 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white/70 backdrop-blur-md rounded-2xl p-6 border border-white/40 shadow-xl"
+                className="bg-white/70 backdrop-blur-md rounded-xl md:rounded-2xl p-4 md:p-6 border border-white/40 shadow-xl"
               >
                 <motion.div
                   initial={{ scale: 0.5 }}
                   whileInView={{ scale: 1 }}
                   viewport={{ once: true }}
                   transition={{ type: "spring", stiffness: 100, delay: 0.2 + index * 0.1 }}
-                  className="text-4xl font-bold mb-2 text-gray-900"
+                  className="text-2xl md:text-4xl font-bold mb-1 md:mb-2 text-gray-900"
                 >
                   {stat.value}
                 </motion.div>
-                <div className="text-gray-700 font-medium">{stat.label}</div>
+                <div className="text-gray-700 font-medium text-xs md:text-base">{stat.label}</div>
               </motion.div>
             ))}
           </motion.div>
@@ -377,7 +340,7 @@ export default function HomePage() {
             <div className="w-24 h-1 bg-gradient-to-r from-blue-600 to-purple-600 mx-auto rounded-full"></div>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             {[
               {
                 name: "María González",
@@ -409,19 +372,19 @@ export default function HomePage() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
                 <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-blue-50/50">
-                  <CardContent className="p-8 flex flex-col items-center text-center">
-                    <div className="mb-6 relative">
+                  <CardContent className="p-6 md:p-8 flex flex-col items-center text-center">
+                    <div className="mb-4 md:mb-6 relative">
                       <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 blur-md"></div>
                       <img
                         src={testimonial.image || "/placeholder.svg"}
                         alt={testimonial.name}
-                        className="w-20 h-20 rounded-full object-cover border-4 border-white relative z-10"
+                        className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover border-4 border-white relative z-10"
                       />
                     </div>
-                    <div className="text-gray-600 italic mb-6">"{testimonial.quote}"</div>
+                    <div className="text-sm md:text-base text-gray-600 italic mb-4 md:mb-6">"{testimonial.quote}"</div>
                     <div className="mt-auto">
-                      <div className="font-semibold text-gray-900">{testimonial.name}</div>
-                      <div className="text-sm text-blue-600">{testimonial.role}</div>
+                      <div className="font-semibold text-gray-900 text-sm md:text-base">{testimonial.name}</div>
+                      <div className="text-xs md:text-sm text-blue-600">{testimonial.role}</div>
                     </div>
                   </CardContent>
                 </Card>
@@ -442,16 +405,16 @@ export default function HomePage() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="max-w-2xl mx-auto bg-white/80 backdrop-blur-sm rounded-3xl p-10 shadow-xl border border-white/50"
+            className="max-w-2xl mx-auto bg-white/80 backdrop-blur-sm rounded-2xl md:rounded-3xl p-6 md:p-10 shadow-xl border border-white/50"
           >
-            <h3 className="text-3xl font-bold text-gray-900 mb-6">¿Listo para hacer la diferencia?</h3>
-            <p className="text-xl text-gray-600 mb-8">
+            <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">¿Listo para hacer la diferencia?</h3>
+            <p className="text-lg md:text-xl text-gray-600 mb-6 md:mb-8">
               Únete a nuestra comunidad y comienza a generar impacto positivo hoy mismo.
             </p>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 size="lg"
-                className="text-lg px-10 py-6 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/20"
+                className="text-base md:text-lg px-8 md:px-10 py-4 md:py-6 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/20 w-full sm:w-auto"
                 asChild
               >
                 <Link href="/registro">Comenzar Ahora</Link>
@@ -466,7 +429,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(59,130,246,0.2),transparent)] -z-10"></div>
 
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-8 md:mb-12">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -490,13 +453,13 @@ export default function HomePage() {
                 links: [
                   { name: "Eventos", href: "/eventos" },
                   { name: "Organizaciones", href: "/organizaciones" },
-                  { name: "Voluntarios", href: "/volun" },
+                  { name: "Acerca de", href: "/acerca-de" },
                 ],
               },
               {
                 title: "Soporte",
                 links: [
-                  { name: "Centro de Ayuda", href: "/centrodeayuda" },
+                  { name: "Guías y Tutoriales", href: "/centrodeayuda" },
                   { name: "Contacto", href: "/contacto" },
                   { name: "Términos", href: "/terminos" },
                 ],

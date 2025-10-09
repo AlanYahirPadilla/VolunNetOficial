@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/app/auth/actions"
 import { prisma } from "@/lib/prisma"
+import { CertificateService } from "@/lib/services/CertificateService"
 
 export async function POST(
   request: NextRequest,
@@ -66,17 +67,52 @@ export async function POST(
         status: 'ACCEPTED'
       },
       data: {
-        status: 'COMPLETED'
+        status: 'COMPLETED',
+        completedAt: new Date()
       }
     })
 
-    // TODO: Implementar notificaciones cuando el sistema esté listo
+    // Generar certificados para todos los voluntarios que completaron el evento
+    const acceptedApplications = event.applications.filter(app => app.status === 'ACCEPTED')
+    
+    for (const application of acceptedApplications) {
+      // Calcular horas completadas
+      const eventStart = new Date(event.startDate)
+      const eventEnd = new Date(event.endDate)
+      const hoursCompleted = Math.max(1, Math.round(
+        (eventEnd.getTime() - eventStart.getTime()) / (1000 * 60 * 60)
+      ))
+
+      // Generar código único
+      const certificateCode = CertificateService.generateCertificateCode()
+
+      // Crear certificado en la base de datos
+      try {
+        await prisma.certificate.create({
+          data: {
+            volunteerId: application.volunteer.id,
+            eventId: event.id,
+            organizationName: user.firstName + ' ' + user.lastName,
+            eventTitle: event.title,
+            eventDate: event.startDate,
+            hoursCompleted,
+            certificateCode
+          }
+        })
+        console.log(`Certificado generado para voluntario ${application.volunteer.id}`)
+      } catch (error) {
+        console.error(`Error generando certificado para voluntario ${application.volunteer.id}:`, error)
+      }
+    }
+
     console.log(`Evento "${event.title}" marcado como completado`)
-    console.log(`Aplicaciones actualizadas: ${event.applications.length}`)
+    console.log(`Aplicaciones actualizadas: ${acceptedApplications.length}`)
+    console.log(`Certificados generados: ${acceptedApplications.length}`)
 
     return NextResponse.json({
       message: "Evento marcado como completado exitosamente",
-      event: updatedEvent
+      event: updatedEvent,
+      certificatesGenerated: acceptedApplications.length
     })
 
   } catch (error) {

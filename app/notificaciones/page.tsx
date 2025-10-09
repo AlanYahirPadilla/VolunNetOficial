@@ -5,6 +5,7 @@ import { getCurrentUser } from "../auth/actions";
 import { Button } from "@/components/ui/button";
 import { Home, Bell, Users, Calendar, Heart, LogOut, User, Settings } from "lucide-react";
 import Link from "next/link";
+import { BottomNavigation } from "@/components/ui/bottom-navigation";
 
 // Forzar que esta página sea dinámica
 export const dynamic = "force-dynamic";
@@ -250,7 +251,7 @@ export default function NotificacionesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pb-nav-mobile">
       {/* === MENU DEL DASHBOARD === */}
       <header className="sticky top-0 z-30 bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
@@ -502,6 +503,9 @@ export default function NotificacionesPage() {
           animation: fadeIn 0.5s ease forwards;
         }
       `}</style>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation unreadCount={unreadCount} />
     </div>
   );
 }

@@ -124,6 +124,7 @@ export function EventCompletionButton({
               <li>Se habilitará el sistema de calificaciones bidireccionales</li>
               <li>El evento se archivará automáticamente</li>
               <li>Se generará un reporte de participación</li>
+              <li className="text-green-600 font-medium">🎓 Se generarán certificados automáticamente para todos los voluntarios</li>
             </ul>
           </div>
 

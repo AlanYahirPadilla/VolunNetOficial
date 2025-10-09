@@ -4,10 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { MobileNavigation } from "@/components/ui/mobile-navigation";
 import {
   Heart,
-  Menu,
-  X,
   Calendar,
   MapPin,
   Users,
@@ -44,7 +43,6 @@ interface Event {
 export default function EventosFinalizadosPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -150,55 +148,12 @@ export default function EventosFinalizadosPage() {
             </Button>
           </div>
 
+          {/* Professional Mobile Navigation */}
           <div className="md:hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label={isMenuOpen ? "Cerrar menú" : "Abrir menú"}
-            >
-              {isMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </Button>
+            <MobileNavigation currentPath="/eventos" />
           </div>
         </div>
 
-        {isMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-white border-t"
-          >
-            <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
-              {menuItems.map((item) => (
-                <Link
-                  key={item}
-                  href={`/${
-                    item.toLowerCase().replace(" ", "-") === "inicio"
-                      ? ""
-                      : item.toLowerCase().replace(" ", "-")
-                  }`}
-                  className="text-gray-700 hover:text-blue-600 transition-colors py-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item}
-                </Link>
-              ))}
-              <div className="flex flex-col space-y-2 pt-2 border-t">
-                <Button variant="outline" className="w-full" asChild>
-                  <Link href="/login">Iniciar Sesión</Link>
-                </Button>
-                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600" asChild>
-                  <Link href="/registro">Registrarse</Link>
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
       </header>
 
       {/* Hero */}

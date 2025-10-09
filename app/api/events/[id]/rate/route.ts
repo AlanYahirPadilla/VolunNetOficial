@@ -125,6 +125,15 @@ export async function POST(
 
     console.log("✅ Application updated with rating:", { rating, comment })
 
+    // Actualizar el rating promedio según el tipo de calificación
+    if (type === 'ORGANIZATION_TO_VOLUNTEER') {
+      // Calcular y actualizar rating promedio del voluntario
+      await updateVolunteerRating(volunteerId)
+    } else if (type === 'VOLUNTEER_TO_ORGANIZATION') {
+      // Calcular y actualizar rating promedio de la organización
+      await updateOrganizationRating(event.organization.id)
+    }
+
     return NextResponse.json({
       message: "Calificación enviada exitosamente",
       rating: { rating, comment }
@@ -172,5 +181,93 @@ export async function GET(
   } catch (error) {
     console.error("Error fetching ratings:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+  }
+}
+
+// Función para calcular y actualizar el rating promedio de un voluntario
+async function updateVolunteerRating(volunteerId: string) {
+  try {
+    console.log("📊 Calculating volunteer rating for:", volunteerId)
+    
+    // Obtener todas las calificaciones del voluntario
+    const ratings = await prisma.eventApplication.findMany({
+      where: {
+        volunteerId: volunteerId,
+        status: 'COMPLETED',
+        rating: { not: null }
+      },
+      select: {
+        rating: true
+      }
+    })
+
+    if (ratings.length === 0) {
+      console.log("⚠️ No ratings found for volunteer")
+      return
+    }
+
+    // Calcular el promedio
+    const totalRating = ratings.reduce((sum, app) => sum + (app.rating || 0), 0)
+    const averageRating = totalRating / ratings.length
+    const roundedRating = Math.round(averageRating * 10) / 10 // Redondear a 1 decimal
+
+    console.log(`📊 Volunteer ratings: ${ratings.length} ratings, average: ${roundedRating}`)
+
+    // Actualizar el rating en la tabla volunteers
+    await prisma.volunteer.update({
+      where: { userId: volunteerId },
+      data: { rating: roundedRating }
+    })
+
+    console.log("✅ Volunteer rating updated:", roundedRating)
+
+  } catch (error) {
+    console.error("❌ Error updating volunteer rating:", error)
+  }
+}
+
+// Función para calcular y actualizar el rating promedio de una organización
+async function updateOrganizationRating(organizationId: string) {
+  try {
+    console.log("📊 Calculating organization rating for:", organizationId)
+    
+    // Obtener todas las calificaciones de la organización
+    // Las calificaciones de organizaciones se almacenan en event_applications
+    // donde el voluntario califica a la organización
+    const ratings = await prisma.eventApplication.findMany({
+      where: {
+        event: {
+          organizationId: organizationId
+        },
+        status: 'COMPLETED',
+        rating: { not: null }
+      },
+      select: {
+        rating: true
+      }
+    })
+
+    if (ratings.length === 0) {
+      console.log("⚠️ No ratings found for organization")
+      return
+    }
+
+    // Calcular el promedio
+    const totalRating = ratings.reduce((sum, app) => sum + (app.rating || 0), 0)
+    const averageRating = totalRating / ratings.length
+    const roundedRating = Math.round(averageRating * 10) / 10 // Redondear a 1 decimal
+
+    console.log(`📊 Organization ratings: ${ratings.length} ratings, average: ${roundedRating}`)
+
+    // Actualizar el rating en la tabla organizations
+    await prisma.organization.update({
+      where: { id: organizationId },
+      data: { rating: roundedRating }
+    })
+
+    console.log("✅ Organization rating updated:", roundedRating)
+
+  } catch (error) {
+    console.error("❌ Error updating organization rating:", error)
   }
 }

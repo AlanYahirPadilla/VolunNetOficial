@@ -47,6 +47,9 @@ export async function GET(request: NextRequest) {
         status: true,
         appliedAt: true,
         message: true,
+        rating: true,
+        feedback: true,
+        completedAt: true,
         event: {
           select: {
             id: true,
@@ -72,6 +75,9 @@ export async function GET(request: NextRequest) {
       status: app.status,
       appliedAt: app.appliedAt,
       message: app.message,
+      rating: app.rating,
+      feedback: app.feedback,
+      completedAt: app.completedAt,
       eventId: app.event.id,
       event_title: app.event.title,
       event_start_date: app.event.startDate,

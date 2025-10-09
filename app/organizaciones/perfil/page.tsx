@@ -57,6 +57,15 @@ function UserMenu({ user }: { user: any }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
+  
+  // Determinar la URL de configuración basada en el rol del usuario
+  const getConfigUrl = () => {
+    if (user?.role === 'ORGANIZATION') {
+      return '/organizaciones/configuracion';
+    }
+    return '/configuracion';
+  };
+  
   return (
     <div className="relative" ref={menuRef}>
       <button
@@ -82,7 +91,7 @@ function UserMenu({ user }: { user: any }) {
             <div className="text-xs text-gray-500">{user?.email || 'organizador@ejemplo.com'}</div>
           </div>
           <Link href="/perfil-organizador" className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"><User className="h-4 w-4 text-gray-500" />Perfil</Link>
-          <Link href="/configuracion" className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"><Settings className="h-4 w-4 text-gray-500" />Configuración</Link>
+          <Link href={getConfigUrl()} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"><Settings className="h-4 w-4 text-gray-500" />Configuración</Link>
           <div className="border-t border-gray-100 my-1" />
           <button
             className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-b-xl transition"

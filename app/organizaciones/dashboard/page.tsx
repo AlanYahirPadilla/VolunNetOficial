@@ -14,7 +14,6 @@ import { ChatInvitations } from "@/components/chat/ChatInvitations"
 import { ChatNotificationManager } from "@/components/notifications/ChatNotificationManager"
 import { NotificationTest } from "@/components/notifications/NotificationTest"
 import { NotificationDebugPanel } from "@/components/notifications/NotificationDebugPanel"
-import { MessageSimulator } from "@/components/notifications/MessageSimulator"
 
 // Forzar que esta página sea dinámica
 export const dynamic = 'force-dynamic'
@@ -221,7 +220,7 @@ function OrganizadorDashboardContent() {
 
   // Detectar el parámetro tab de la URL y cambiar la pestaña automáticamente
   useEffect(() => {
-    const tabFromUrl = searchParams.get('tab')
+    const tabFromUrl = searchParams?.get('tab')
     if (tabFromUrl && ['mis-eventos', 'postulaciones', 'estadisticas', 'notificaciones', 'comunidad'].includes(tabFromUrl)) {
       setTab(tabFromUrl)
     }
@@ -436,6 +435,36 @@ function OrganizadorDashboardContent() {
     })
   }
 
+  const renderStars = (rating: number) => {
+    const stars = []
+    const fullStars = Math.floor(rating)
+    const hasHalfStar = rating % 1 !== 0
+    
+    // Estrellas llenas
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(
+        <span key={i} className="text-yellow-400 text-lg">★</span>
+      )
+    }
+    
+    // Media estrella si es necesario
+    if (hasHalfStar) {
+      stars.push(
+        <span key="half" className="text-yellow-400 text-lg">☆</span>
+      )
+    }
+    
+    // Estrellas vacías para completar 5
+    const emptyStars = 5 - Math.ceil(rating)
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(
+        <span key={`empty-${i}`} className="text-gray-300 text-lg">☆</span>
+      )
+    }
+    
+    return stars
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
@@ -450,9 +479,7 @@ function OrganizadorDashboardContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
       <ChatNotificationManager />
-      <NotificationTest />
-      <NotificationDebugPanel />
-      <MessageSimulator />
+
       {/* Header superior */}
       <div className="sticky top-0 z-30 bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
@@ -462,13 +489,7 @@ function OrganizadorDashboardContent() {
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">VolunNet</span>
           </div>
           {/* Navegación */}
-          <div className="flex-1 mx-8 max-w-xl">
-              <input
-                type="text"
-                placeholder="Buscar eventos, organizaciones..."
-                className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-gray-50 text-gray-700 shadow-sm"
-              />
-          </div>
+          
           <div className="flex items-center gap-6">
             <nav className="flex gap-2 text-gray-600 text-sm font-medium">
               <Link 
@@ -505,11 +526,11 @@ function OrganizadorDashboardContent() {
                 <span>Comunidad</span>
               </Link>
               <Link 
-                href="/organizaciones/eventos-finalizados" 
+                href="/organizaciones/mis-eventos-finalizados" 
                 className="flex items-center gap-1 px-3 py-1 rounded-lg transition group relative hover:text-blue-700 hover:bg-blue-50"
               >
                 <CheckCircle className="h-5 w-5 transition group-hover:text-blue-700" />
-                <span>Eventos Finalizados</span>
+                <span>Mis Eventos Finalizados</span>
               </Link>
             </nav>
             {/* Separador visual */}
@@ -550,8 +571,8 @@ function OrganizadorDashboardContent() {
                 <h3 className="font-bold text-gray-900 text-lg mb-1">{organizationName}</h3>
                 <p className="text-gray-500 text-sm mb-3">{organizationEmail}</p>
                 <div className="flex items-center gap-1 mb-4">
-                  <span className="text-yellow-400">★</span>
-                  <span className="text-sm font-semibold text-gray-700">{stats.averageRating}</span>
+                  {renderStars(stats.averageRating)}
+                  <span className="text-sm font-semibold text-gray-700 ml-1">({stats.averageRating})</span>
                 </div>
                 <Link href="/organizaciones/perfil" className="text-blue-600 text-sm font-medium hover:text-blue-700 transition">
                   Panel de Control
@@ -613,15 +634,7 @@ function OrganizadorDashboardContent() {
                 <TabsTrigger value="mis-eventos" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Mis Eventos</TabsTrigger>
                 <TabsTrigger value="postulaciones" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Postulaciones</TabsTrigger>
                 <TabsTrigger value="estadisticas" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Estadísticas</TabsTrigger>
-                <TabsTrigger value="notificaciones" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white relative">
-                  Notificaciones
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="comunidad" className="flex-1 data-[state=active]:bg-blue-600 data-[state=active]:text-white">Comunidad</TabsTrigger>
+                
               </TabsList>
               <TabsContent value="mis-eventos">
                 <div className="flex justify-end mb-4 gap-2">
@@ -751,10 +764,10 @@ function OrganizadorDashboardContent() {
                     </div>
                     <Button 
                       className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                      onClick={() => router.push('/eventos')}
+                      onClick={() => router.push('/organizaciones/mis-eventos')}
                     >
                       <Users className="h-4 w-4 mr-2" />
-                      Ver Todos los Eventos
+                      Ver Mis Eventos
                     </Button>
                   </div>
 
@@ -870,49 +883,197 @@ function OrganizadorDashboardContent() {
                 </div>
               </TabsContent>
               <TabsContent value="estadisticas">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card className="bg-white rounded-2xl shadow-lg border border-blue-50">
-                    <CardHeader>
-                      <CardTitle>Eventos por Estado</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Activos</span>
-                          <span className="font-semibold text-blue-600">2</span>
+                <div className="space-y-6">
+                  {/* Resumen General */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-100 text-sm font-medium">Total Eventos</p>
+                          <p className="text-3xl font-bold">{events.length}</p>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Borradores</span>
-                          <span className="font-semibold text-gray-600">1</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Cancelados</span>
-                          <span className="font-semibold text-red-600">0</span>
-                        </div>
+                        <Calendar className="h-8 w-8 text-blue-200" />
                       </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-white rounded-2xl shadow-lg border border-blue-50">
-                    <CardHeader>
-                      <CardTitle>Postulaciones Recientes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Esta semana</span>
-                          <span className="font-semibold text-green-600">3</span>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-lg"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-green-100 text-sm font-medium">Voluntarios Activos</p>
+                          <p className="text-3xl font-bold">{events.reduce((sum, event) => sum + event.currentVolunteers, 0)}</p>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Este mes</span>
-                          <span className="font-semibold text-blue-600">7</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Total</span>
-                          <span className="font-semibold text-purple-600">12</span>
-                        </div>
+                        <Users className="h-8 w-8 text-green-200" />
                       </div>
-                    </CardContent>
-                  </Card>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-purple-100 text-sm font-medium">Capacidad Total</p>
+                          <p className="text-3xl font-bold">{events.reduce((sum, event) => sum + event.maxVolunteers, 0)}</p>
+                        </div>
+                        <Star className="h-8 w-8 text-purple-200" />
+                      </div>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-orange-100 text-sm font-medium">Tasa de Ocupación</p>
+                          <p className="text-3xl font-bold">
+                            {events.length > 0 
+                              ? Math.round((events.reduce((sum, event) => sum + event.currentVolunteers, 0) / events.reduce((sum, event) => sum + event.maxVolunteers, 0)) * 100) 
+                              : 0}%
+                          </p>
+                        </div>
+                        <CheckCircle className="h-8 w-8 text-orange-200" />
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  {/* Estadísticas Detalladas */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Eventos por Estado */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      <Card className="bg-white rounded-2xl shadow-lg border border-blue-50 overflow-hidden">
+                        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
+                          <CardTitle className="flex items-center gap-2 text-blue-800">
+                            <Calendar className="h-5 w-5" />
+                            Eventos por Estado
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            {(() => {
+                              const statusCounts = events.reduce((acc, event) => {
+                                const status = getStatusBadge(event.status, event.startDate).text
+                                acc[status] = (acc[status] || 0) + 1
+                                return acc
+                              }, {} as Record<string, number>)
+                              
+                              const statusConfig = {
+                                'Activo': { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
+                                'Próximo': { color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+                                'En Proceso': { color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' },
+                                'Completado': { color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' },
+                                'Borrador': { color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-200' },
+                                'Cancelado': { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' }
+                              }
+                              
+                              return Object.entries(statusCounts).map(([status, count]) => {
+                                const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['Borrador']
+                                return (
+                                  <div key={status} className={`flex justify-between items-center p-3 rounded-lg ${config.bg} ${config.border} border`}>
+                                    <span className="font-medium text-gray-700">{status}</span>
+                                    <span className={`font-bold text-lg ${config.color}`}>{count}</span>
+                                  </div>
+                                )
+                              })
+                            })()}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+
+                    {/* Distribución por Ubicación */}
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.6 }}
+                    >
+                      <Card className="bg-white rounded-2xl shadow-lg border border-green-50 overflow-hidden">
+                        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
+                          <CardTitle className="flex items-center gap-2 text-green-800">
+                            <Users className="h-5 w-5" />
+                            Distribución por Ubicación
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            {(() => {
+                              const locationCounts = events.reduce((acc, event) => {
+                                const location = `${event.city}, ${event.state}`
+                                acc[location] = (acc[location] || 0) + 1
+                                return acc
+                              }, {} as Record<string, number>)
+                              
+                              return Object.entries(locationCounts).map(([location, count]) => (
+                                <div key={location} className="flex justify-between items-center p-3 rounded-lg bg-gray-50 border border-gray-200">
+                                  <span className="font-medium text-gray-700">{location}</span>
+                                  <span className="font-bold text-lg text-gray-600">{count}</span>
+                                </div>
+                              ))
+                            })()}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </div>
+
+                  {/* Gráfico de Progreso de Eventos */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 }}
+                  >
+                    <Card className="bg-white rounded-2xl shadow-lg border border-purple-50 overflow-hidden">
+                      <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100">
+                        <CardTitle className="flex items-center gap-2 text-purple-800">
+                          <Star className="h-5 w-5" />
+                          Progreso de Participación por Evento
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="space-y-4">
+                          {events.map((event, index) => {
+                            const participationRate = Math.round((event.currentVolunteers / event.maxVolunteers) * 100)
+                            return (
+                              <div key={event.id} className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-gray-700 truncate">{event.title}</span>
+                                  <span className="text-sm font-semibold text-purple-600">{participationRate}%</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-3">
+                                  <div 
+                                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-1000"
+                                    style={{ width: `${Math.min(participationRate, 100)}%` }}
+                                  ></div>
+                                </div>
+                                <div className="flex justify-between text-xs text-gray-500">
+                                  <span>{event.currentVolunteers} voluntarios</span>
+                                  <span>{event.maxVolunteers} capacidad</span>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 </div>
               </TabsContent>
 

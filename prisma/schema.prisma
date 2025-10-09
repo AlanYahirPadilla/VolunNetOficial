@@ -231,6 +231,23 @@ model Availability {
   @@map("availability")
 }
 
+model Certificate {
+  id               String   @id @default(cuid())
+  volunteerId      String
+  eventId          String
+  organizationName String
+  eventTitle       String
+  eventDate        DateTime
+  hoursCompleted   Int      @default(0)
+  pdfUrl           String?
+  certificateCode  String   @unique // Código único para verificación
+  issuedAt         DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("certificates")
+}
+
 model Notification {
   id        String   @id @default(cuid())
   userId    String

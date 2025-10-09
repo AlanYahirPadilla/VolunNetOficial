@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { User, Award, Clock, Users, Share2, FileDown, Globe, CheckCircle2, ChevronRight, ChevronLeft, MapPin, Briefcase, Star, AtSign, Link as LinkIcon } from "lucide-react";
+import { User, Award, Clock, Users, Share2, FileDown, Globe, CheckCircle2, ChevronRight, ChevronLeft, MapPin, Briefcase, Star, AtSign, Link as LinkIcon, Plus, X, Calendar } from "lucide-react";
 
 const GENDERS = ["Masculino", "Femenino", "Otro", "Prefiero no decirlo"];
 const SKILLS = [
@@ -12,6 +12,36 @@ const LANGUAGES = [
   "Español", "Inglés", "Francés", "Alemán", "Italiano", "Portugués", "Chino", "Japonés"
 ];
 const COUNTRIES = ["México", "España", "Argentina", "Colombia", "Estados Unidos", "Chile", "Perú", "Otro"];
+
+// Categorías predefinidas
+const CATEGORIAS = [
+  { id: "cat_1", nombre: "Educación" },
+  { id: "cat_2", nombre: "Medio Ambiente" },
+  { id: "cat_3", nombre: "Salud" },
+  { id: "cat_4", nombre: "Alimentación" },
+  { id: "cat_5", nombre: "Tecnología" },
+  { id: "cat_6", nombre: "Deportes" },
+  { id: "cat_7", nombre: "Arte y Cultura" },
+  { id: "cat_8", nombre: "Construcción" },
+];
+
+// Días de la semana
+const DAYS_OF_WEEK = [
+  { id: 0, name: "Domingo", short: "Dom" },
+  { id: 1, name: "Lunes", short: "Lun" },
+  { id: 2, name: "Martes", short: "Mar" },
+  { id: 3, name: "Miércoles", short: "Mié" },
+  { id: 4, name: "Jueves", short: "Jue" },
+  { id: 5, name: "Viernes", short: "Vie" },
+  { id: 6, name: "Sábado", short: "Sáb" },
+];
+
+// Horarios predefinidos
+const TIME_SLOTS = [
+  "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00",
+  "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00",
+  "20:00", "21:00", "22:00", "23:00"
+];
 
 const STEP_ICONS = [
   <User className="h-6 w-6 text-blue-500" />,
@@ -72,6 +102,46 @@ export default function ProfileEditModal({ open, onClose, initialData, onSave }:
   const handleRemoveReference = (idx: number) => setForm((prev: any) => {
     const refs = [...(prev.references || [])]; refs.splice(idx, 1); return { ...prev, references: refs };
   });
+
+  // Funciones para categorías personalizadas
+  const [newCategory, setNewCategory] = useState("");
+  const handleAddCustomCategory = () => {
+    if (newCategory.trim() && !form.interests?.includes(newCategory.trim())) {
+      setForm((prev: any) => ({
+        ...prev,
+        interests: [...(prev.interests || []), newCategory.trim()]
+      }));
+      setNewCategory("");
+    }
+  };
+  const handleRemoveCustomCategory = (category: string) => {
+    setForm((prev: any) => ({
+      ...prev,
+      interests: prev.interests?.filter((c: string) => c !== category) || []
+    }));
+  };
+
+  // Funciones para disponibilidad
+  const handleAddAvailability = () => {
+    setForm((prev: any) => ({
+      ...prev,
+      availability: [...(prev.availability || []), { dayOfWeek: 1, startTime: "09:00", endTime: "17:00" }]
+    }));
+  };
+  const handleUpdateAvailability = (idx: number, field: string, value: any) => {
+    setForm((prev: any) => {
+      const availability = [...(prev.availability || [])];
+      availability[idx] = { ...availability[idx], [field]: value };
+      return { ...prev, availability };
+    });
+  };
+  const handleRemoveAvailability = (idx: number) => {
+    setForm((prev: any) => {
+      const availability = [...(prev.availability || [])];
+      availability.splice(idx, 1);
+      return { ...prev, availability };
+    });
+  };
   const handleSubmit = async () => {
     // Validar redes sociales antes de guardar
     const errors: {[key: string]: boolean} = {};
@@ -205,29 +275,170 @@ export default function ProfileEditModal({ open, onClose, initialData, onSave }:
             </div>
           )}
           {step === 1 && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium">Habilidades</label>
-                <div className="flex flex-wrap gap-2 mt-1">
+                <label className="block text-sm font-medium mb-2">Habilidades</label>
+                <div className="flex flex-wrap gap-2">
                   {SKILLS.map(skill => (
-                    <button key={skill} type="button" className={`px-3 py-1 rounded-full border ${form.skills?.includes(skill) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-blue-700 border-blue-300"}`} onClick={() => handleMultiSelect("skills", skill)}>{skill}</button>
+                    <button key={skill} type="button" className={`px-3 py-1 rounded-full border transition-all ${form.skills?.includes(skill) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-blue-700 border-blue-300 hover:bg-blue-50"}`} onClick={() => handleMultiSelect("skills", skill)}>{skill}</button>
                   ))}
                 </div>
               </div>
+              
               <div>
-                <label className="block text-sm font-medium">Idiomas</label>
-                <div className="flex flex-wrap gap-2 mt-1">
+                <label className="block text-sm font-medium mb-2">Categorías de Interés</label>
+                <div className="space-y-3">
+                  {/* Categorías predefinidas */}
+                  <div>
+                    <p className="text-xs text-gray-500 mb-2">Categorías disponibles:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {CATEGORIAS.map(cat => (
+                        <button key={cat.id} type="button" className={`px-3 py-1 rounded-full border transition-all ${form.interests?.includes(cat.id) ? "bg-purple-600 text-white border-purple-600" : "bg-white text-purple-700 border-purple-300 hover:bg-purple-50"}`} onClick={() => handleMultiSelect("interests", cat.id)}>{cat.nombre}</button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Agregar categoría personalizada */}
+                  <div className="border-t pt-3">
+                    <p className="text-xs text-gray-500 mb-2">Agregar categoría personalizada:</p>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        className="flex-1 border rounded-lg p-2 text-sm" 
+                        placeholder="Ej: Música, Danza, Cocina..." 
+                        value={newCategory}
+                        onChange={(e) => setNewCategory(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddCustomCategory()}
+                      />
+                      <Button type="button" onClick={handleAddCustomCategory} size="sm" className="bg-purple-600 hover:bg-purple-700">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Categorías seleccionadas */}
+                  {(form.interests || []).length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2">Categorías seleccionadas:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {(form.interests || []).map((interest: string) => {
+                          const cat = CATEGORIAS.find(c => c.id === interest);
+                          return (
+                            <div key={interest} className="flex items-center gap-1 px-3 py-1 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
+                              <span className="text-sm">{cat ? cat.nombre : interest}</span>
+                              <button type="button" onClick={() => handleRemoveCustomCategory(interest)} className="text-purple-500 hover:text-purple-700">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Idiomas</label>
+                <div className="flex flex-wrap gap-2">
                   {LANGUAGES.map(lang => (
-                    <button key={lang} type="button" className={`px-3 py-1 rounded-full border ${form.languages?.includes(lang) ? "bg-green-600 text-white border-green-600" : "bg-white text-green-700 border-green-300"}`} onClick={() => handleMultiSelect("languages", lang)}>{lang}</button>
+                    <button key={lang} type="button" className={`px-3 py-1 rounded-full border transition-all ${form.languages?.includes(lang) ? "bg-green-600 text-white border-green-600" : "bg-white text-green-700 border-green-300 hover:bg-green-50"}`} onClick={() => handleMultiSelect("languages", lang)}>{lang}</button>
                   ))}
                 </div>
               </div>
             </div>
           )}
           {step === 2 && (
-            <div>
-              <label className="block text-sm font-medium">Disponibilidad (próximamente)</label>
-              <div className="bg-gray-100 rounded-lg p-2 text-gray-500">Selector avanzado de días y horarios aquí</div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium">Disponibilidad</label>
+                <Button type="button" onClick={handleAddAvailability} size="sm" className="bg-green-600 hover:bg-green-700">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Agregar horario
+                </Button>
+              </div>
+              
+              {(form.availability || []).length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p>No hay horarios configurados</p>
+                  <p className="text-sm">Agrega tus horarios de disponibilidad para que las organizaciones puedan encontrarte</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {(form.availability || []).map((slot: any, idx: number) => (
+                    <div key={idx} className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-medium text-gray-700">Horario {idx + 1}</span>
+                        <Button 
+                          type="button" 
+                          onClick={() => handleRemoveAvailability(idx)} 
+                          size="sm" 
+                          variant="ghost"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Día</label>
+                          <select 
+                            className="w-full border rounded-lg p-2 text-sm" 
+                            value={slot.dayOfWeek} 
+                            onChange={(e) => handleUpdateAvailability(idx, 'dayOfWeek', parseInt(e.target.value))}
+                          >
+                            {DAYS_OF_WEEK.map(day => (
+                              <option key={day.id} value={day.id}>{day.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Hora inicio</label>
+                          <select 
+                            className="w-full border rounded-lg p-2 text-sm" 
+                            value={slot.startTime} 
+                            onChange={(e) => handleUpdateAvailability(idx, 'startTime', e.target.value)}
+                          >
+                            {TIME_SLOTS.map(time => (
+                              <option key={time} value={time}>{time}</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Hora fin</label>
+                          <select 
+                            className="w-full border rounded-lg p-2 text-sm" 
+                            value={slot.endTime} 
+                            onChange={(e) => handleUpdateAvailability(idx, 'endTime', e.target.value)}
+                          >
+                            {TIME_SLOTS.map(time => (
+                              <option key={time} value={time}>{time}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-2 text-xs text-gray-500">
+                        {DAYS_OF_WEEK.find(d => d.id === slot.dayOfWeek)?.name}: {slot.startTime} - {slot.endTime}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <Clock className="h-4 w-4 text-blue-600 mt-0.5" />
+                  <div className="text-xs text-blue-700">
+                    <p className="font-medium mb-1">💡 Consejo:</p>
+                    <p>Configura tus horarios de disponibilidad para que las organizaciones puedan encontrar voluntarios en los momentos que necesiten ayuda.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           {step === 3 && (
@@ -294,7 +505,19 @@ export default function ProfileEditModal({ open, onClose, initialData, onSave }:
                   <div><b>Tagline:</b> {form.tagline}</div>
                   <div><b>Biografía:</b> {form.bio}</div>
                   <div><b>Habilidades:</b> {(form.skills || []).join(", ")}</div>
+                  <div><b>Categorías de interés:</b> {
+                    (form.interests || []).map((interest: string) => {
+                      const cat = CATEGORIAS.find(c => c.id === interest);
+                      return cat ? cat.nombre : interest;
+                    }).join(", ")
+                  }</div>
                   <div><b>Idiomas:</b> {(form.languages || []).join(", ")}</div>
+                  <div><b>Disponibilidad:</b> {
+                    (form.availability || []).map((slot: any) => {
+                      const day = DAYS_OF_WEEK.find(d => d.id === slot.dayOfWeek);
+                      return `${day?.name}: ${slot.startTime}-${slot.endTime}`;
+                    }).join(", ")
+                  }</div>
                   <div><b>Referencias:</b> {(form.references || []).join(", ")}</div>
                   <div><b>Redes sociales:</b> {
                     SOCIALS.map(social => {

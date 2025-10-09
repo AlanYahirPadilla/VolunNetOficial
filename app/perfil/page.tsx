@@ -1,5 +1,7 @@
 "use client"
 import { Star, Edit, Lock, Calendar, Clock, Award, MapPin, Heart, Home, Users, Bell, User, Settings, LogOut, CheckCircle2, AlertCircle, Share2, BadgeCheck, UserCheck, FileDown, Upload, Briefcase, Link as LinkIcon } from "lucide-react"
+import { MobileNavigation } from "@/components/ui/mobile-navigation"
+import { BottomNavigation } from "@/components/ui/bottom-navigation"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -265,7 +267,7 @@ export default function PerfilVoluntario() {
 
   return (
     <AdaptiveLoading isLoading={loading} type="dashboard" loadingSteps={loadingSteps}>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 w-full">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 w-full pb-nav-mobile">
         {/* Header superior del dashboard */}
         <div className="sticky top-0 z-30 bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
@@ -281,16 +283,17 @@ export default function PerfilVoluntario() {
                 <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">VolunNet</span>
               </button>
             </div>
-            {/* Barra de búsqueda */}
-            <div className="flex-1 mx-8 max-w-xl">
+            {/* Desktop Search */}
+            <div className="hidden md:flex flex-1 mx-8 max-w-xl">
               <input
                 type="text"
                 placeholder="Buscar eventos, iglesias..."
                 className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-gray-50 text-gray-700 shadow-sm"
               />
             </div>
-            {/* Navegación */}
-            <div className="flex items-center gap-6">
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-6">
               <nav className="flex gap-2 text-gray-600 text-sm font-medium">
                 <Link href="/dashboard" className="flex items-center gap-1 px-3 py-1 rounded-lg hover:text-blue-700 hover:bg-blue-50 transition group relative">
                   <Home className="h-5 w-5 group-hover:text-blue-700 transition" />
@@ -318,147 +321,135 @@ export default function PerfilVoluntario() {
               {/* Avatar usuario con menú */}
               <UserMenu user={user} />
             </div>
+
+            {/* Mobile Navigation */}
+            <div className="md:hidden flex items-center gap-3">
+              <MobileNavigation user={user} currentPath="/perfil" />
+            </div>
           </div>
         </div>
-        {/* Layout de dos columnas en desktop, sin banner morado */}
-        <div className="w-full max-w-6xl mx-auto flex flex-col md:flex-row gap-8 mt-12 md:mt-16 px-4 md:px-0 z-20">
-          {/* Línea divisoria sutil en desktop */}
-          <div className="hidden md:block absolute left-1/2 top-0 h-full w-px bg-gray-200/70 z-10" style={{transform: 'translateX(-50%)'}} />
-          {/* Columna izquierda: Card principal grande */}
-          <div className="flex-[2.1] min-w-[380px] max-w-3xl flex flex-col gap-5 relative z-20">
-            {/* Card de perfil grande tipo LinkedIn */}
-            <div className="relative bg-gradient-to-br from-white via-blue-50 to-purple-50 border border-blue-100 shadow-2xl rounded-2xl p-8 flex flex-row items-center gap-10 w-full min-h-[240px] transition-all duration-300 hover:shadow-[0_8px_32px_0_rgba(80,80,200,0.18)] hover:-translate-y-1">
-              {/* Botón compartir y PDF en la parte superior derecha */}
-              <div className="absolute top-4 right-6 flex gap-2 z-20">
+        {/* Layout responsive mejorado */}
+        <div className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row gap-6 mt-6 px-4 z-20">
+          {/* Columna principal */}
+          <div className="flex-1 flex flex-col gap-5 relative z-20">
+            {/* Card de perfil móvil-first */}
+            <div className="relative bg-gradient-to-br from-white via-blue-50 to-purple-50 border border-blue-100 shadow-xl rounded-2xl p-4 md:p-6 w-full transition-all duration-300 hover:shadow-2xl">
+              {/* Botones superiores - responsive */}
+              <div className="flex justify-end gap-1 mb-3">
                 <button
-                  className="flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-semibold shadow hover:from-blue-600 hover:to-purple-700 transition-all"
-                  title="Compartir perfil"
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-semibold shadow"
                   onClick={() => window.alert("Próximamente podrás compartir tu perfil")}
                 >
-                  <Share2 className="h-4 w-4" /> Compartir
+                  <Share2 className="h-3 w-3" /> <span className="hidden sm:inline">Compartir</span>
                 </button>
                 <button
-                  className="flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 text-white text-xs font-semibold shadow hover:from-blue-500 hover:to-purple-600 transition-all"
-                  title="Descargar perfil en PDF"
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r from-blue-400 to-purple-400 text-white text-xs font-semibold shadow"
                   onClick={() => window.alert("Próximamente podrás descargar tu perfil en PDF")}
                 >
-                  <FileDown className="h-4 w-4" /> PDF
+                  <FileDown className="h-3 w-3" /> <span className="hidden sm:inline">PDF</span>
                 </button>
               </div>
               
-              {/* Avatar grande con botón editar, elevado */}
-              <div className="relative flex-shrink-0" style={{ marginTop: '-5.5rem' }}>
-                <div className="h-32 w-32 md:h-36 md:w-36 rounded-full bg-gray-200 border-8 border-white shadow-2xl flex items-center justify-center text-6xl text-blue-600 font-bold overflow-hidden transition-shadow duration-200">
-                  {user?.avatar ? (
-                    <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover rounded-full" />
-                  ) : (
-                    user?.firstName?.[0] || 'Y'
-                  )}
+              {/* Layout flex responsive para avatar e info */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-4">
+                {/* Avatar */}
+                <div className="relative flex-shrink-0">
+                  <div className="h-24 w-24 md:h-28 md:w-28 rounded-full bg-gray-200 border-4 border-white shadow-xl flex items-center justify-center text-4xl text-blue-600 font-bold overflow-hidden">
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                      user?.firstName?.[0] || 'Y'
+                    )}
+                  </div>
+                  <button
+                    className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-1.5 shadow transition"
+                    type="button"
+                    onClick={() => setIsAvatarModalOpen(true)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
                 </div>
+
+                {/* Info principal */}
+                <div className="flex-1 text-center sm:text-left min-w-0">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 mb-2">
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 truncate">{user?.firstName || 'Yahir Venegas'}</h1>
+                    {voluntario?.badges?.map((badge: any, idx: number) => (
+                      <span key={idx} className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${badge.color}`}>
+                        {badge.icon} {badge.label}
+                      </span>
+                    ))}
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row items-center sm:items-center gap-2 text-sm text-gray-500 mb-2">
+                    <span className="truncate">{user?.email || 'novayahiro50@gmail.com'}</span>
+                    {user?.verified ? (
+                      <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                    ) : (
+                      <span className="flex items-center gap-1 text-blue-500 text-xs">
+                        <AlertCircle className="h-4 w-4" />
+                        No verificado
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
+                    <MapPin className="h-4 w-4 text-blue-400" />
+                    <span className="text-sm text-gray-500">{voluntario?.city && voluntario?.state ? `${voluntario.city}, ${voluntario.state}` : 'Guadalajara, Jalisco'}</span>
+                  </div>
+                  
+                  {voluntario?.tagline && (
+                    <p className="text-sm text-gray-600 italic mb-2">{voluntario.tagline}</p>
+                  )}
+                  
+                  {/* Rating */}
+                  <div className="flex items-center justify-center sm:justify-start gap-1 mb-3">
+                    {[...Array(5)].map((_, i) => {
+                      const rating = voluntario?.rating ?? 0;
+                      const isFull = i + 1 <= Math.floor(rating);
+                      return (
+                        <Star key={i} className={`h-4 w-4 ${isFull ? 'text-yellow-400 fill-yellow-300' : 'text-gray-200'}`} />
+                      );
+                    })}
+                    <span className="ml-1 text-yellow-500 font-semibold text-sm">{(voluntario?.rating ?? 0).toFixed(1)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Intereses */}
+              <div className="flex flex-wrap justify-center sm:justify-start gap-2 mb-4">
+                {voluntario?.interests?.map((area: string, idx: number) => {
+                  const cat = CATEGORIAS.find(c => c.id === area);
+                  return (
+                    <span key={idx} className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 text-xs font-semibold shadow-sm border border-blue-200">
+                      {cat ? cat.nombre : area}
+                    </span>
+                  );
+                })}
+              </div>
+              
+              {/* Botones de acción - responsive */}
+              <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-4 border-t border-purple-200">
                 <button
-                    className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 shadow transition"
-                    title="Editar foto de perfil"
-                    type="button"
-                    onClick={() => setIsAvatarModalOpen(true)} // MODIFICADO
-                  >
-                    <Edit className="h-5 w-5" />
-                  </button>
-                </div>
-              {/* Info principal compacta y tagline */}
-              <div className="flex-1 flex flex-col gap-1 min-w-0 pl-2 mb-8 mt-8">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-0 truncate leading-tight">{user?.firstName || 'Yahir Venegas'}</h1>
-                  {/* Badges automáticos */}
-                  {voluntario?.badges?.map((badge: any, idx: number) => (
-                    <span key={idx} className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${badge.color}`} title={badge.label}>
-                      {badge.icon} {badge.label}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 text-base text-gray-500 mb-0 truncate">
-                  {user?.email || 'novayahiro50@gmail.com'}
-                  {user?.verified ? (
-                    <span title="Correo verificado" className="flex items-center">
-                      <CheckCircle2 className="h-5 w-5 text-blue-500" />
-                    </span>
-                  ) : (
-                    <span title="Correo no verificado" className="flex items-center gap-1 text-blue-500 font-medium">
-                      <AlertCircle className="h-5 w-5" />
-                      <span className="text-xs">No verificado</span>
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mb-1 mt-0.5">
-                  <MapPin className="h-4 w-4 text-blue-400" />
-                  <span className="text-sm text-gray-500"> {voluntario?.city && voluntario?.state ? `${voluntario.city}, ${voluntario.state}` : 'Guadalajara, Jalisco'} </span>
-                </div>
-                {/* Tagline */}
-                <div className="text-sm text-gray-600 italic">{voluntario?.tagline || ''}</div>
-                {/* Rating */}
-                <div className="flex gap-1 mb-2 mt-1">
-                  {[...Array(5)].map((_, i) => {
-                    const rating = voluntario?.rating ?? 0;
-                    const isFull = i + 1 <= Math.floor(rating);
-                    const isHalf = !isFull && i < rating;
-                    return (
-                      <span key={i} className="relative">
-                        <Star className={`h-5 w-5 ${isFull ? 'text-yellow-400 fill-yellow-300' : isHalf ? 'text-yellow-400' : 'text-gray-200'}`} />
-                        {isHalf && (
-                          <span className="absolute left-0 top-0 overflow-hidden" style={{ width: '50%' }}>
-                            <Star className="h-5 w-5 text-yellow-400 fill-yellow-300" />
-                          </span>
-                        )}
-                      </span>
-                    );
-                  })}
-                  <span className="ml-1 text-yellow-500 font-semibold text-sm">{(voluntario?.rating ?? 0).toFixed(1)}</span>
-                </div>
-                {/* Intereses en una fila, chips grandes y coloridos */}
-                <div className="w-full flex flex-wrap gap-3 mt-1 mb-2">
-                  {voluntario?.interests?.map((area: string, idx: number) => {
-                    const cat = CATEGORIAS.find(c => c.id === area);
-                    return (
-                      <span key={idx} className="px-4 py-1 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 text-sm font-semibold shadow-sm border border-blue-200 hover:from-blue-200 hover:to-purple-200 transition-all cursor-pointer">
-                        {cat ? cat.nombre : area}
-                      </span>
-                    );
-                  })}
-                </div>
-                {/* Botones de acción en una sola fila en la parte inferior */}
-                <div className="w-full flex flex-wrap gap-2 mt-8 border-t border-purple-200 pt-4 justify-center md:justify-start">
-                  <button
-                    className="flex items-center gap-2 px-4 py-1.5 rounded-md bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold shadow hover:from-blue-700 hover:to-purple-700 transition-all text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                    type="button"
-                    onClick={() => setEditMode(true)}
-                  >
-                    <Edit className="h-4 w-4" /> Editar perfil
-                  </button>
-                  <button
-                    className="flex items-center gap-2 px-4 py-1.5 rounded-md border border-blue-400 text-blue-700 font-semibold bg-white shadow hover:bg-blue-50 transition-all text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-                    type="button"
-                  >
-                    <Lock className="h-4 w-4" /> Cambiar contraseña
-                  </button>
-                  <button
-                    className="flex items-center gap-2 px-4 py-1.5 rounded-md border border-blue-400 text-blue-700 font-semibold bg-white shadow hover:bg-blue-50 transition-all text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-                    type="button"
-                    onClick={() => window.alert('Próximamente podrás subir tu CV')}
-                  >
-                    <Upload className="h-4 w-4" /> {voluntario?.cvFile ? 'Actualizar CV' : 'Subir CV'}
-                  </button>
-                  {voluntario?.cvFile && (
-                    <button
-                      className="flex items-center gap-2 px-4 py-1.5 rounded-md border border-green-400 text-green-700 font-semibold bg-white shadow hover:bg-green-50 transition-all text-sm focus:outline-none focus:ring-2 focus:ring-green-200"
-                      type="button"
-                      onClick={() => window.alert('Próximamente podrás descargar el CV')}
-                    >
-                      <FileDown className="h-4 w-4" /> Descargar CV
-                    </button>
-                  )}
-                  {voluntario?.cvFile && (
-                    <span className="text-xs text-gray-500 ml-2 truncate max-w-[120px]">{voluntario?.cvFile}</span>
-                  )}
-                </div>
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold shadow hover:from-blue-700 hover:to-purple-700 transition-all text-sm"
+                  type="button"
+                  onClick={() => setEditMode(true)}
+                >
+                  <Edit className="h-4 w-4" /> Editar perfil
+                </button>
+                <button
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-blue-400 text-blue-700 font-semibold bg-white shadow hover:bg-blue-50 transition-all text-sm"
+                  type="button"
+                >
+                  <Lock className="h-4 w-4" /> Cambiar contraseña
+                </button>
+                <button
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-blue-400 text-blue-700 font-semibold bg-white shadow hover:bg-blue-50 transition-all text-sm"
+                  type="button"
+                  onClick={() => window.alert('Próximamente podrás subir tu CV')}
+                >
+                  <Upload className="h-4 w-4" /> {voluntario?.cvFile ? 'Actualizar CV' : 'Subir CV'}
+                </button>
               </div>
             </div>
             {/* Card Sobre mí */}
@@ -602,8 +593,8 @@ export default function PerfilVoluntario() {
               </ul>
             </div>
           </div>
-          {/* Columna derecha: Card de Nivel y Progreso de Perfil */}
-          <div className="flex-[0.5] flex flex-col gap-6 min-w-[200px] max-w-xs relative z-20">
+          {/* Columna derecha: Sidebar */}
+          <div className="lg:w-80 flex flex-col gap-6 relative z-20">
             {/* Progreso de perfil */}
             <ProfileCompletionCard completion={completion} checklist={profileChecklist} />
             {/* Card CV y redes sociales */}
@@ -675,6 +666,9 @@ export default function PerfilVoluntario() {
         <div className="max-w-2xl mx-auto my-4 flex justify-end">
           <button className="bg-blue-600 text-white px-4 py-2 rounded-lg" onClick={() => setEditMode(true)}>Editar perfil</button>
         </div>
+
+        {/* Bottom Navigation */}
+        <BottomNavigation />
       </div>
     </AdaptiveLoading>
   )

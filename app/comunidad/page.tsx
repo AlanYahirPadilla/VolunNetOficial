@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { MessageCircle, Users, Send, ArrowLeft } from 'lucide-react'
+import { MessageCircle, Users, Send, ArrowLeft, ChevronLeft, ChevronRight, Menu } from 'lucide-react'
+import { MobileNavigation } from "@/components/ui/mobile-navigation"
+import { BottomNavigation } from "@/components/ui/bottom-navigation"
 import { getCurrentUser } from '@/app/auth/actions'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -84,6 +86,7 @@ export default function ComunidadPage() {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('usuarios')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
@@ -272,89 +275,142 @@ export default function ComunidadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 pb-nav-mobile">
       {/* Menú superior estilo WhatsApp */}
       <WhatsAppStyleMenu user={user} currentPage="comunidad" />
       
       {/* Layout principal estilo WhatsApp */}
-      <div className="flex h-[calc(100vh-64px)]">
+      <div className="flex h-[calc(100vh-64px-4rem)] md:h-[calc(100vh-64px)]">
         {/* Sidebar de chats */}
-        <div className="w-1/3 border-r border-gray-200 bg-white">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 m-4 mb-0">
-              <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
-              <TabsTrigger value="chats">Chats</TabsTrigger>
-            </TabsList>
+        <div className={`${sidebarCollapsed ? 'w-16' : selectedChat ? 'hidden md:block md:w-1/3' : 'w-full md:w-1/3'} border-r border-gray-200 bg-white transition-all duration-300 ease-in-out`}>
+          {/* Botón para colapsar/expandir */}
+          <div className="flex justify-end p-2 border-b border-gray-200">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="h-8 w-8 p-0 hover:bg-gray-100"
+            >
+              {sidebarCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
 
-            {/* Tab de Usuarios */}
-            <TabsContent value="usuarios" className="flex-1 p-4">
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Todos los Usuarios
-                </h2>
-                
-                {allUsers.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No hay usuarios disponibles</p>
-                  </div>
-                ) : (
-                  <ScrollArea className="h-[calc(100vh-200px)]">
-                    <div className="space-y-3">
-                      {allUsers.map((user) => (
-                        <div
-                          key={user.id}
-                          className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                          onClick={() => createChat(user.id)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={user.avatar} />
-                              <AvatarFallback className="bg-blue-500 text-white">
-                                {user.firstName?.[0]}{user.lastName?.[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                              <h3 className="font-medium text-gray-900">
-                                {user.firstName} {user.lastName}
-                              </h3>
-                              <p className="text-sm text-gray-500">{user.email}</p>
-                              <div className="mt-1">
-                                <Badge variant={user.role === 'VOLUNTEER' ? 'default' : 'secondary'} className="text-xs">
-                                  {user.role === 'VOLUNTEER' ? 'Voluntario' : 'Organización'}
-                                </Badge>
-                              </div>
-                            </div>
-                            <Button 
-                              size="sm" 
-                              className="bg-blue-500 hover:bg-blue-600 text-white"
-                            >
-                              <MessageCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+          {!sidebarCollapsed && (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-2 m-4 mb-0">
+                <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
+                <TabsTrigger value="chats">Chats</TabsTrigger>
+              </TabsList>
+
+              {/* Tab de Usuarios */}
+              <TabsContent value="usuarios" className="flex-1 p-4">
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Todos los Usuarios
+                  </h2>
+                  
+                  {allUsers.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No hay usuarios disponibles</p>
                     </div>
-                  </ScrollArea>
-                )}
-              </div>
-            </TabsContent>
+                  ) : (
+                    <ScrollArea className="h-[calc(100vh-200px)]">
+                      <div className="space-y-3">
+                        {allUsers.map((user) => (
+                          <div
+                            key={user.id}
+                            className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                            onClick={() => createChat(user.id)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={user.avatar} />
+                                <AvatarFallback className="bg-blue-500 text-white">
+                                  {user.firstName?.[0]}{user.lastName?.[0]}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <h3 className="font-medium text-gray-900">
+                                  {user.firstName} {user.lastName}
+                                </h3>
+                                <p className="text-sm text-gray-500">{user.email}</p>
+                                <div className="mt-1">
+                                  <Badge variant={user.role === 'VOLUNTEER' ? 'default' : 'secondary'} className="text-xs">
+                                    {user.role === 'VOLUNTEER' ? 'Voluntario' : 'Organización'}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                className="bg-blue-500 hover:bg-blue-600 text-white"
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </div>
+              </TabsContent>
 
-            {/* Tab de Chats */}
-            <TabsContent value="chats" className="flex-1">
-              <WhatsAppStyleChatList 
-                chats={chats}
-                user={user}
-                onChatSelect={setSelectedChat}
-                onCreateChat={() => setActiveTab('usuarios')}
-              />
-            </TabsContent>
-          </Tabs>
+              {/* Tab de Chats */}
+              <TabsContent value="chats" className="flex-1">
+                <WhatsAppStyleChatList 
+                  chats={chats}
+                  user={user}
+                  onChatSelect={setSelectedChat}
+                  onCreateChat={() => setActiveTab('usuarios')}
+                />
+              </TabsContent>
+            </Tabs>
+          )}
+
+          {/* Vista colapsada */}
+          {sidebarCollapsed && (
+            <div className="flex flex-col items-center py-4 space-y-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveTab('usuarios')}
+                className={`h-10 w-10 p-0 ${activeTab === 'usuarios' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+              >
+                <Users className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveTab('chats')}
+                className={`h-10 w-10 p-0 ${activeTab === 'chats' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+              >
+                <MessageCircle className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Área principal de chat */}
-        <div className="flex-1">
+        <div className={`${selectedChat ? 'w-full md:flex-1' : 'hidden md:flex md:flex-1'} relative`}>
+          {/* Botón flotante para expandir sidebar en móvil */}
+          {sidebarCollapsed && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSidebarCollapsed(false)}
+              className="fixed top-20 left-4 z-40 md:hidden bg-white shadow-lg"
+            >
+              <Menu className="h-4 w-4 mr-2" />
+              Menú
+            </Button>
+          )}
+          
           {selectedChat ? (
             <WhatsAppStyleChat
               chat={selectedChat}
@@ -387,6 +443,9 @@ export default function ComunidadPage() {
           )}
         </div>
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation />
     </div>
   )
 }
