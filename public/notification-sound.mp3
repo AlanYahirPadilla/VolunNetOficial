@@ -1,0 +1,3 @@
+# Este es un archivo placeholder para el sonido de notificación
+# En producción, deberías reemplazar este archivo con un archivo MP3 real
+# Por ahora, el sistema usará Web Audio API como fallback
